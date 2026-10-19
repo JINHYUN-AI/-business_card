@@ -194,6 +194,28 @@ a { color: inherit; text-decoration: none; }
 .hero > *:not(#net) { position: relative; z-index: 1; }
 #toast:empty { display: none; }
 
+/* ---------- 자동 촬영 카메라 ---------- */
+#camOverlay { position: fixed; inset: 0; z-index: 100000; background: #000; }
+#camVideo { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
+#camFrame { position: absolute; box-shadow: 0 0 0 100vmax rgba(17,19,24,.66); border: 1px solid rgba(244,244,240,.35); transition: border-color .2s; }
+#camFrame.ready { border-color: var(--lime); }
+#camFrame i { position: absolute; width: 22px; height: 22px; border: 0 solid var(--lime); }
+#camFrame i:nth-child(1) { top: -2px; left: -2px; border-width: 3px 0 0 3px; }
+#camFrame i:nth-child(2) { top: -2px; right: -2px; border-width: 3px 3px 0 0; }
+#camFrame i:nth-child(3) { bottom: -2px; left: -2px; border-width: 0 0 3px 3px; }
+#camFrame i:nth-child(4) { bottom: -2px; right: -2px; border-width: 0 3px 3px 0; }
+#camFlash { position: absolute; inset: 0; background: #fff; opacity: 0; pointer-events: none; }
+#camFlash.go { animation: camflash .25s ease-out; }
+@keyframes camflash { 0% { opacity: .85; } 100% { opacity: 0; } }
+.cam-top { position: absolute; top: 0; left: 0; right: 0; display: flex; justify-content: space-between; padding: calc(14px + env(safe-area-inset-top, 0px)) 16px 0; }
+.cam-btn { padding: 12px 14px; background: rgba(17,19,24,.78); border: 1px solid var(--line-2); border-radius: 2px; font: 800 11.5px/1 var(--f-mono); letter-spacing: .08em; color: var(--fg); min-width: 64px; }
+.cam-bottom { position: absolute; left: 0; right: 0; bottom: 0; padding: 0 22px calc(22px + env(safe-area-inset-bottom, 0px)); display: grid; gap: 12px; justify-items: center; background: linear-gradient(transparent, rgba(17,19,24,.85) 40%); padding-top: 40px; }
+.cam-bar { width: min(280px, 70vw); height: 4px; background: rgba(244,244,240,.18); overflow: hidden; }
+.cam-bar i { display: block; height: 100%; width: 0; background: var(--lime); box-shadow: 0 0 12px rgba(195,244,0,.6); transition: width .14s linear; }
+.cam-actions { width: 100%; max-width: 360px; display: flex; align-items: center; justify-content: space-between; }
+.cam-shutter { width: 68px; height: 68px; border-radius: 50%; background: var(--lime); border: 4px solid #111318; box-shadow: 0 0 0 3px var(--lime); }
+.cam-shutter:active { transform: scale(.94); }
+
   </style>
 </head>
 <body>
@@ -204,6 +226,27 @@ a { color: inherit; text-decoration: none; }
     <div class="in-msg" id="loaderMsg">환경 구성 중</div>
   </div>
   <div id="toast"></div>
+  <!-- 자동 촬영 카메라 -->
+  <div id="camOverlay" style="display:none">
+    <video id="camVideo" playsinline muted autoplay></video>
+    <div id="camFrame"><i></i><i></i><i></i><i></i></div>
+    <div id="camFlash"></div>
+    <div class="cam-top">
+      <button class="cam-btn" type="button" onclick="stopCamera()">✕ 닫기</button>
+      <button class="cam-btn" type="button" onclick="toggleCamOrientation()">↻ 가로/세로</button>
+    </div>
+    <div class="cam-bottom">
+      <div class="lab" id="camMsg" style="color:var(--fg)">명함을 틀에 맞춰주세요</div>
+      <div class="cam-bar"><i id="camProg"></i></div>
+      <div class="cam-actions">
+        <button class="cam-btn" type="button" onclick="pickFromAlbum()">앨범</button>
+        <button class="cam-shutter" type="button" onclick="captureFromCamera(false)" aria-label="촬영"></button>
+        <span style="width:64px"></span>
+      </div>
+    </div>
+  </div>
+  <input type="file" id="albumInput" accept="image/*" style="display:none" onchange="handleImageSelected(event)">
+
   <div class="orb a"></div><div class="orb b"></div><div class="grain"></div>
 
   <main class="page">
@@ -222,7 +265,7 @@ a { color: inherit; text-decoration: none; }
       <div class="camera-dropzone" id="cameraDropzone" onclick="triggerCamera()">
         <div class="camera-icon-circle"><i class="fa-solid fa-camera"></i></div>
         <span>명함 촬영 또는 사진 선택</span>
-        <small>명함을 평평하게 두고 또렷하게 비춰주세요</small>
+        <small>틀에 맞추면 자동으로 촬영됩니다</small>
       </div>
       <input type="file" id="cardImageInput" accept="image/*" capture="environment" onchange="handleImageSelected(event)">
 
@@ -400,27 +443,201 @@ a { color: inherit; text-decoration: none; }
     // ========================================================
     // 카메라 촬영 및 Gemini AI OCR 스캔
     // ========================================================
-    function triggerCamera() {
-      document.getElementById('cardImageInput').click();
+    // 사진 한 장(dataURL)을 받아 미리보기 표시 후 AI OCR 시작
+    function processImageDataUrl(dataUrl, mimeType) {
+      selectedImageBase64 = dataUrl;
+      document.getElementById('previewImg').src = dataUrl;
+      document.getElementById('imagePreviewBox').style.display = 'block';
+      document.getElementById('cameraDropzone').style.display = 'none';
+      runGeminiOcr(dataUrl, mimeType || 'image/jpeg');
     }
 
+    // 앨범/기본 카메라 앱에서 고른 사진
     function handleImageSelected(event) {
       const file = event.target.files[0];
+      event.target.value = '';
       if (!file) return;
-
       const reader = new FileReader();
-      reader.onload = function(e) {
-        selectedImageBase64 = e.target.result;
-        
-        // 미리보기 표시
-        document.getElementById('previewImg').src = selectedImageBase64;
-        document.getElementById('imagePreviewBox').style.display = 'block';
-        document.getElementById('cameraDropzone').style.display = 'none';
-        
-        // AI OCR 호출 시작
-        runGeminiOcr(selectedImageBase64, file.type);
-      };
+      reader.onload = (e) => processImageDataUrl(e.target.result, file.type);
       reader.readAsDataURL(file);
+    }
+
+    function pickFromAlbum() {
+      stopCamera();
+      document.getElementById('albumInput').click();
+    }
+
+    // ========================================================
+    // 자동 촬영 카메라: 틀 안에 명함이 선명하게 들어와 가만히 있으면 자동으로 찍는다
+    // ========================================================
+    const CARD_RATIO = 85.6 / 54;   // 명함 가로:세로
+    const HOLD_MS = 1000;           // 이 시간 동안 조건이 유지되면 촬영
+    const GRACE_MS = 350;           // 잠깐 흔들려도 봐주는 시간
+    const MIN_SHARP = 28;           // 선명도(라플라시안 분산) 최소값
+    const MIN_EDGE = 0.035;         // 틀 안에 글자/선이 있어야 하는 최소 비율
+    const MAX_EDGE = 0.55;          // 너무 어지러운 배경 제외
+    const MAX_MOTION = 5.5;         // 직전 화면과의 평균 밝기 차이(작을수록 정지)
+    const cam = { stream: null, timer: 0, portrait: false, okSince: 0, lastOk: 0, prev: null, best: 0, busy: false };
+    const camCv = document.createElement('canvas');
+    camCv.width = 160; camCv.height = 100;
+    const camCtx = camCv.getContext('2d', { willReadFrequently: true });
+
+    function triggerCamera() {
+      const md = navigator.mediaDevices;
+      if (!md || !md.getUserMedia || !window.isSecureContext) { document.getElementById('cardImageInput').click(); return; }
+      openCamera();
+    }
+
+    async function openCamera() {
+      const ov = document.getElementById('camOverlay');
+      const video = document.getElementById('camVideo');
+      try {
+        cam.stream = await navigator.mediaDevices.getUserMedia({
+          video: { facingMode: { ideal: 'environment' }, width: { ideal: 1920 }, height: { ideal: 1080 } },
+          audio: false
+        });
+      } catch (e) {
+        showToast('카메라를 열 수 없어 기본 카메라 앱으로 전환합니다.');
+        document.getElementById('cardImageInput').click();
+        return;
+      }
+      video.srcObject = cam.stream;
+      ov.style.display = 'block';
+      document.body.style.overflow = 'hidden';
+      cam.okSince = 0; cam.lastOk = 0; cam.prev = null; cam.best = 0; cam.busy = false;
+      layoutGuide();
+      await video.play().catch(() => {});
+      setCamStatus('명함을 틀에 맞춰주세요', 0);
+      cam.timer = setInterval(analyzeFrame, 140);
+    }
+
+    function stopCamera() {
+      clearInterval(cam.timer); cam.timer = 0;
+      if (cam.stream) { cam.stream.getTracks().forEach((t) => t.stop()); cam.stream = null; }
+      const video = document.getElementById('camVideo');
+      video.srcObject = null;
+      document.getElementById('camOverlay').style.display = 'none';
+      document.body.style.overflow = '';
+    }
+
+    function toggleCamOrientation() {
+      cam.portrait = !cam.portrait;
+      cam.okSince = 0; cam.prev = null;
+      layoutGuide();
+    }
+
+    // 틀(화면 좌표) 계산 및 배치
+    function guideRect() {
+      const W = window.innerWidth, H = window.innerHeight;
+      let w, h;
+      if (!cam.portrait) { w = Math.min(W * 0.9, 560); h = w / CARD_RATIO; }
+      else { h = Math.min(H * 0.62, 560); w = h / CARD_RATIO; }
+      return { x: (W - w) / 2, y: (H - h) / 2 - H * 0.04, w, h };
+    }
+
+    function layoutGuide() {
+      const g = guideRect();
+      const f = document.getElementById('camFrame');
+      f.style.left = g.x + 'px'; f.style.top = g.y + 'px'; f.style.width = g.w + 'px'; f.style.height = g.h + 'px';
+    }
+    window.addEventListener('resize', () => { if (cam.stream) layoutGuide(); });
+
+    // 틀을 영상 픽셀 좌표로 변환 (영상은 화면에 cover 방식으로 채워져 있음)
+    function guideInVideo(margin) {
+      const video = document.getElementById('camVideo');
+      const vw = video.videoWidth, vh = video.videoHeight;
+      if (!vw || !vh) return null;
+      const W = window.innerWidth, H = window.innerHeight;
+      const scale = Math.max(W / vw, H / vh);
+      const offX = (W - vw * scale) / 2, offY = (H - vh * scale) / 2;
+      const g = guideRect();
+      const mx = g.w * margin, my = g.h * margin;
+      const x = Math.max(0, (g.x - mx - offX) / scale);
+      const y = Math.max(0, (g.y - my - offY) / scale);
+      const w = Math.min(vw - x, (g.w + 2 * mx) / scale);
+      const h = Math.min(vh - y, (g.h + 2 * my) / scale);
+      return { x, y, w, h, vw, vh };
+    }
+
+    // 틀 안 화면을 작게 뜯어 선명도·글자량·정지 여부를 계산
+    function analyzeFrame() {
+      if (cam.busy) return;
+      const video = document.getElementById('camVideo');
+      const r = guideInVideo(0);
+      if (!r || video.readyState < 2) return;
+      camCtx.drawImage(video, r.x, r.y, r.w, r.h, 0, 0, camCv.width, camCv.height);
+      const W = camCv.width, H = camCv.height;
+      const data = camCtx.getImageData(0, 0, W, H).data;
+      const gray = new Float32Array(W * H);
+      for (let i = 0, p = 0; i < data.length; i += 4, p++) gray[p] = data[i] * 0.299 + data[i + 1] * 0.587 + data[i + 2] * 0.114;
+
+      // 라플라시안 분산(선명도) + 가장자리 비율(글자·선 존재)
+      let sum = 0, sum2 = 0, n = 0, edges = 0;
+      for (let y = 1; y < H - 1; y++) {
+        for (let x = 1; x < W - 1; x++) {
+          const i = y * W + x;
+          const lap = 4 * gray[i] - gray[i - 1] - gray[i + 1] - gray[i - W] - gray[i + W];
+          sum += lap; sum2 += lap * lap; n++;
+          const gx = gray[i + 1] - gray[i - 1], gy = gray[i + W] - gray[i - W];
+          if (Math.abs(gx) + Math.abs(gy) > 60) edges++;
+        }
+      }
+      const sharp = sum2 / n - (sum / n) * (sum / n);
+      const edgeRatio = edges / n;
+
+      // 직전 화면과의 차이(정지 여부)
+      let motion = 99;
+      if (cam.prev) {
+        let d = 0;
+        for (let i = 0; i < gray.length; i += 3) d += Math.abs(gray[i] - cam.prev[i]);
+        motion = d / (gray.length / 3);
+      }
+      cam.prev = gray;
+
+      cam.best = Math.max(sharp, cam.best * 0.97);
+      const sharpOk = sharp >= MIN_SHARP && sharp >= cam.best * 0.65;
+      const edgeOk = edgeRatio >= MIN_EDGE && edgeRatio <= MAX_EDGE;
+      const steady = motion <= MAX_MOTION;
+      const now = performance.now();
+
+      if (sharpOk && edgeOk && steady) {
+        cam.lastOk = now;
+        if (!cam.okSince) cam.okSince = now;
+        const p = Math.min(1, (now - cam.okSince) / HOLD_MS);
+        setCamStatus('그대로 유지하세요', p);
+        if (p >= 1) captureFromCamera(true);
+      } else if (cam.okSince && now - cam.lastOk < GRACE_MS) {
+        // 잠깐의 흔들림은 유지
+      } else {
+        cam.okSince = 0;
+        setCamStatus(!edgeOk ? '명함을 틀 안에 가득 채워주세요' : !steady ? '폰을 고정해 주세요' : '초점을 맞추는 중…', 0);
+      }
+    }
+
+    function setCamStatus(msg, p) {
+      document.getElementById('camMsg').textContent = msg;
+      document.getElementById('camProg').style.width = Math.round(p * 100) + '%';
+      document.getElementById('camFrame').classList.toggle('ready', p > 0);
+    }
+
+    // 촬영: 틀(+4% 여유) 안쪽만 잘라 JPEG로 만든 뒤 OCR에 전달
+    function captureFromCamera(auto) {
+      if (cam.busy) return;
+      const video = document.getElementById('camVideo');
+      const r = guideInVideo(0.04);
+      if (!r) return;
+      cam.busy = true;
+      const cv = document.createElement('canvas');
+      cv.width = Math.round(r.w); cv.height = Math.round(r.h);
+      cv.getContext('2d').drawImage(video, r.x, r.y, r.w, r.h, 0, 0, cv.width, cv.height);
+      const dataUrl = cv.toDataURL('image/jpeg', 0.92);
+      if (navigator.vibrate) navigator.vibrate(60);
+      const flash = document.getElementById('camFlash');
+      flash.classList.add('go');
+      setTimeout(() => flash.classList.remove('go'), 250);
+      stopCamera();
+      processImageDataUrl(dataUrl, 'image/jpeg');
+      if (auto) showToast('📸 자동으로 촬영했습니다');
     }
 
     function runGeminiOcr(base64Data, mimeType) {
