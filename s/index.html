@@ -13,7 +13,6 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Archivo:wght@800;900&family=JetBrains+Mono:wght@500;700&family=Noto+Sans+KR:wght@400;500;700;900&display=swap" rel="stylesheet" media="print" onload="this.media='all'">
-  <script defer src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
   <script>
     /* 저사양 자동 감지(20번 홈페이지와 동일): 메모리 4GB 이하 / CPU 2코어 이하 / 데이터 절약 모드면 가벼운 화면 */
     (function () {
@@ -65,7 +64,7 @@ a { color: inherit; text-decoration: none; }
 .grain { position: fixed; inset: 0; z-index: 0; pointer-events: none; opacity: .06; mix-blend-mode: overlay;
   background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='160' height='160'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='2'/></filter><rect width='100%' height='100%' filter='url(%23n)'/></svg>"); }
 @keyframes drift { to { transform: translate(-6%, 8%) scale(1.15); } }
-#net { position: absolute; inset: 0; width: 100%; height: 100%; z-index: 0; pointer-events: none; opacity: .55; }
+#net { position: fixed; inset: 0; width: 100%; height: 100%; z-index: 0; pointer-events: none; opacity: .7; }
 .lite .orb, .lite .grain, .lite #net { display: none; }
 
 /* ---------- 공통 ---------- */
@@ -199,15 +198,13 @@ a { color: inherit; text-decoration: none; }
 .form-group input, .form-group textarea { width: 100%; background: rgba(244,244,240,.04); border: 1px solid var(--line-2); border-radius: 2px; color: var(--fg); padding: 13px 12px; font: 500 15px/1.3 var(--f-body); letter-spacing: -.02em; outline: none; }
 .form-group input::placeholder, .form-group textarea::placeholder { color: var(--fg-40); }
 .form-group input:focus, .form-group textarea:focus { border-color: var(--lime); background: rgba(195,244,0,.05); }
-.action-btn-group { display: grid; gap: 10px; margin-top: 6px; }
+.action-btn-group { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 6px; }
 .btn-save-device { display: flex; align-items: center; justify-content: center; gap: 10px; padding: 18px; background: var(--lime); color: #111; border: 1px solid var(--lime); border-radius: 2px; font: 800 12.5px/1.3 var(--f-mono); letter-spacing: .08em; text-transform: uppercase; }
 .btn-save-device:active { background: var(--fg); border-color: var(--fg); }
 .btn-save-sheet { display: flex; align-items: center; justify-content: center; gap: 10px; padding: 16px; border: 1px solid var(--line-2); border-radius: 2px; font: 800 12px/1.3 var(--f-mono); letter-spacing: .08em; text-transform: uppercase; }
 .btn-save-sheet:active { background: var(--fg); color: var(--bg); }
 .btn-save-sheet[disabled] { opacity: .5; }
 
-/* 히어로: 네트워크 캔버스 위로 내용이 올라오도록 */
-.hero > *:not(#net) { position: relative; z-index: 1; }
 #toast:empty { display: none; }
 
 /* ---------- 자동 촬영 카메라 ---------- */
@@ -232,6 +229,14 @@ a { color: inherit; text-decoration: none; }
 .cam-shutter { width: 68px; height: 68px; border-radius: 50%; background: var(--lime); border: 4px solid #111318; box-shadow: 0 0 0 3px var(--lime); }
 .cam-shutter:active { transform: scale(.94); }
 
+/* 히어로: 이름·소속은 오른쪽 정렬 */
+.who { text-align: right; }
+.role { justify-items: end; }
+.role b span { color: var(--fg); font-weight: 800; }
+.cta { margin-top: 22px; }
+/* 한 줄 제목 */
+.h2.one { font-size: clamp(21px, 6.4vw, 30px); white-space: nowrap; letter-spacing: -.05em; }
+
   </style>
 </head>
 <body>
@@ -243,15 +248,8 @@ a { color: inherit; text-decoration: none; }
   </div>
   <div id="toast"></div>
 
-  <div class="modal-backdrop" id="qrModal">
-    <div class="modal-content">
-      <h4>내 전자명함 QR</h4>
-      <p>상대방 카메라로 비추면 명함이 열립니다</p>
-      <div class="qr-box" id="qrcode"></div>
-      <button class="btn btn-close-modal" onclick="closeQrModal()">닫기</button>
-    </div>
-  </div>
-
+  <!-- 배경: 점과 선이 움직이는 네트워크(전 영역 고정) -->
+  <canvas id="net" aria-hidden="true"></canvas>
   <div class="orb a"></div><div class="orb b"></div><div class="grain"></div>
 
   <main class="page">
@@ -262,31 +260,23 @@ a { color: inherit; text-decoration: none; }
 
     <!-- 히어로 -->
     <section class="hero">
-      <canvas id="net" aria-hidden="true"></canvas>
       <p class="greet rise" style="--i:1">안녕하세요? 코딩하는 사무국장 <b>장진현</b>입니다.</p>
       <div class="hero-grid">
         <div class="photo rise" style="--i:2"><img src="../photo.jpg" alt="장진현 사무국장" width="525" height="720" fetchpriority="high"><i></i><i></i><i></i><i></i><span class="hud">● ONLINE</span></div>
-        <div>
+        <div class="who">
           <h1 class="name rise" style="--i:3" data-bind="name">장진현</h1>
           <div class="role rise" style="--i:4">
-            <b><span data-bind="organization" style="color:var(--fg);font-weight:800">등대의집</span> <span data-bind="title" style="color:var(--fg);font-weight:800">사무국장</span></b>
+            <b><span data-bind="organization">등대의집</span> <span data-bind="title">사무국장</span></b>
             <span>평택대학교 겸임교수</span>
           </div>
         </div>
       </div>
-      <h2 class="slogan rise" style="--i:5"><span id="typed"></span><i class="caret"></i></h2>
 
-      <div class="cta rise" style="--i:6">
+      <div class="cta rise" style="--i:5">
         <button class="btn lime block" type="button" onclick="downloadMyVCard()">연락처 저장하기 →</button>
-        <div class="quick">
-          <a class="btn" id="btnCall" href="tel:">전화</a>
-          <a class="btn" id="btnSms" href="sms:">문자</a>
-          <a class="btn" id="btnEmail" href="mailto:">메일</a>
-          <button class="btn" type="button" onclick="openQrModal()">QR</button>
-        </div>
       </div>
 
-      <div class="stats rise" style="--i:7">
+      <div class="stats rise" style="--i:6">
         <div class="stat"><b><span data-count="25">0</span><i>년</i></b><span>사회복지 현장 경력</span></div>
         <div class="stat"><b><span data-count="37">0</span><i>개</i></b><span>AI 분석 지표</span></div>
         <div class="stat"><b><span data-count="6">0</span><i>종</i></b><span>AI 에이전트</span></div>
@@ -298,45 +288,15 @@ a { color: inherit; text-decoration: none; }
     <h2 class="h2 rise">현장에서 코드를<br>짜는 사람<span class="lime">.</span></h2>
     <p class="body rise" style="--i:1">사회복지 25년차 현장 전문가가 직접 코드를 짜면 얼마나 무서운지, 현실적인 대안으로 보여 드립니다. 서류에 묻힌 월요일을 줄이고, 사람과 마주 앉는 시간을 되돌려 드립니다.</p>
 
-    <!-- 이력 -->
+    <!-- 이력 / 시스템: 한 줄 -->
     <div class="chapter"><span class="ch-name">PROFILE</span><span class="ch-pos">02</span></div>
-    <h2 class="h2 rise">25년 현장,<br>검증된 이력<span class="lime">.</span></h2>
-    <div class="tl">
-      <div class="tl-row rise"><div class="tl-when now">2016 — NOW</div><div class="tl-what"><b>지적장애인거주시설 등대의집 사무국장</b><span>사회복지법인 예맥재단</span></div></div>
-      <div class="tl-row rise"><div class="tl-when">2019 — 2022</div><div class="tl-what"><b>한국장애인복지시설협회 정책분과위원</b><span>운영 컨설팅 위원 · 천안시 수탁기관선정 심의위원</span></div></div>
-      <div class="tl-row rise"><div class="tl-when">2016 — 2023</div><div class="tl-what"><b>사회복지시설평가 지표개발·현장평가위원</b><span>사회보장정보원 / 중앙사회서비스원</span></div></div>
-      <div class="tl-row rise"><div class="tl-when">2009 — 2014</div><div class="tl-what"><b>중증장애인거주시설 옹달샘 사무국장</b><span>사회복지법인 평화의집</span></div></div>
-      <div class="tl-row rise"><div class="tl-when">2002 — 2009</div><div class="tl-what"><b>중증장애인거주시설 양평평화의집</b><span>사회복지법인 평화의집</span></div></div>
-      <div class="tl-row rise"><div class="tl-when">EDU</div><div class="tl-what"><b>평택대학교 사회복지학과 박사수료</b><span>명지대학교 사회복지대학원 석사</span></div></div>
-    </div>
+    <h2 class="h2 one rise">25년 현장, 검증된 이력<span class="lime">.</span></h2>
 
-    <!-- 시스템 -->
     <div class="chapter"><span class="ch-name">SYSTEMS</span><span class="ch-pos">03</span></div>
-    <h2 class="h2 rise">직접 개발한<br>AI 에이전트<span class="lime">.</span></h2>
-    <div class="agents">
-      <div class="agent rise"><span class="k">J</span><div><b>사례관리 분석 에이전트</b><span>37개 지표로 사례관리를 분석하고 서식을 자동 주입</span></div></div>
-      <div class="agent rise"><span class="k">H</span><div><b>관찰기록 시계열 분석</b><span>이용자 변화를 시계열로 분석해 전문 보고서 생성</span></div></div>
-      <div class="agent rise"><span class="k">S</span><div><b>사례회의 전략 브리핑</b><span>욕구 충돌을 강점 관점으로 재해석해 중재안 제시</span></div></div>
-      <div class="agent rise"><span class="k">P</span><div><b>프로그램 계획 자동화</b><span>반복 행정을 자동화해 사람을 만날 시간을 확보</span></div></div>
-    </div>
-    <div class="chips rise">
-      <span class="chip on">Google Apps Script</span><span class="chip">Gemini AI</span><span class="chip">RAG</span><span class="chip">인권 보호 모니터링</span><span class="chip">규정 개정 조율</span>
-    </div>
-
-    <!-- 연락처 -->
-    <div class="chapter"><span class="ch-name">CONTACT</span><span class="ch-pos">04</span></div>
-    <h2 class="h2 rise">언제든<br>연락 주세요<span class="lime">.</span></h2>
-    <div class="rows">
-      <a class="row" id="rowMobile" href="tel:"><span class="lab">MOBILE</span><span class="v" data-bind="mobile">010-4790-1011</span><span class="go">→</span></a>
-      <a class="row" id="rowTel" href="tel:"><span class="lab">OFFICE</span><span class="v" data-bind="tel">041-582-4495</span><span class="go">→</span></a>
-      <a class="row" id="rowEmail" href="mailto:"><span class="lab">EMAIL</span><span class="v" data-bind="email">2016235@light4u.kr</span><span class="go">→</span></a>
-      <a class="row" id="rowAddr" href="#" target="_blank" rel="noopener"><span class="lab">ADDRESS</span><span class="v" data-bind="address">충청남도 천안시 서북구 직산읍 성진로410-11</span><span class="go">↗</span></a>
-      <a class="row" id="rowWeb" href="https://jinhyun.ai.kr" target="_blank" rel="noopener"><span class="lab">WEB</span><span class="v" data-bind="website">https://jinhyun.ai.kr</span><span class="go">↗</span></a>
-    </div>
+    <h2 class="h2 one rise">직접 개발한 AI 에이전트<span class="lime">.</span></h2>
 
     <div class="foot">
       <a class="btn lime block" href="https://jinhyun.ai.kr" target="_blank" rel="noopener">포트폴리오 보기 →</a>
-      <button class="btn block" type="button" onclick="downloadMyVCard()">연락처 저장하기</button>
       <div class="copy"><span class="lab">© JINHYUN.AI</span><span class="lab">CARD.JINHYUN.AI.KR</span></div>
     </div>
   </main>
@@ -394,14 +354,6 @@ a { color: inherit; text-decoration: none; }
         const val = v[el.dataset.bind];
         if (val) el.textContent = val;
       });
-      $('#btnCall').href = 'tel:' + digits(v.mobile);
-      $('#btnSms').href = 'sms:' + digits(v.mobile);
-      $('#btnEmail').href = 'mailto:' + v.email;
-      $('#rowMobile').href = 'tel:' + digits(v.mobile);
-      $('#rowTel').href = 'tel:' + digits(v.tel);
-      $('#rowEmail').href = 'mailto:' + v.email;
-      $('#rowAddr').href = 'https://map.naver.com/p/search/' + encodeURIComponent(v.address);
-      $('#rowWeb').href = v.website;
     }
 
     function loadProfile() {
@@ -508,19 +460,6 @@ a { color: inherit; text-decoration: none; }
       }
     }
 
-    // ---------- QR ----------
-    function openQrModal() {
-      const box = $('#qrcode');
-      box.innerHTML = '';
-      if (window.QRCode) {
-        new QRCode(box, { text: 'https://card.jinhyun.ai.kr/', width: 180, height: 180, colorDark: '#111318', colorLight: '#FFFFFF', correctLevel: QRCode.CorrectLevel.H });
-      } else {
-        box.textContent = 'card.jinhyun.ai.kr';
-      }
-      $('#qrModal').style.display = 'flex';
-    }
-    function closeQrModal() { $('#qrModal').style.display = 'none'; }
-
     function showToast(msg) {
       const toast = $('#toast');
       toast.innerText = msg;
@@ -544,7 +483,7 @@ a { color: inherit; text-decoration: none; }
       if (revealed) return;
       revealed = true;
       const els = document.querySelectorAll('.rise');
-      if (!('IntersectionObserver' in window)) { els.forEach((e) => e.classList.add('in')); document.querySelectorAll('[data-count]').forEach(countUp); typeSlogan(); return; }
+      if (!('IntersectionObserver' in window)) { els.forEach((e) => e.classList.add('in')); document.querySelectorAll('[data-count]').forEach(countUp); return; }
       const io = new IntersectionObserver((entries) => {
         entries.forEach((en) => {
           if (!en.isIntersecting) return;
@@ -554,16 +493,7 @@ a { color: inherit; text-decoration: none; }
         });
       }, { threshold: 0.12 });
       els.forEach((e) => io.observe(e));
-      typeSlogan();
-    }
-
-    function typeSlogan() {
-      const el = $('#typed');
-      const text = '주말의 코드가, 복지의 월요일을 바꿉니다.';
-      if (matchMedia('(prefers-reduced-motion: reduce)').matches) { el.textContent = text; return; }
-      let i = 0;
-      const tick = () => { el.textContent = text.slice(0, ++i); if (i < text.length) setTimeout(tick, 55); };
-      setTimeout(tick, 500);
+     
     }
 
     function startNetwork() {
@@ -577,7 +507,7 @@ a { color: inherit; text-decoration: none; }
         w = r.width; h = r.height;
         cv.width = w * dpr; cv.height = h * dpr;
         ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-        pts = Array.from({ length: 26 }, () => ({ x: Math.random() * w, y: Math.random() * h, vx: (Math.random() - .5) * .35, vy: (Math.random() - .5) * .35 }));
+        pts = Array.from({ length: 48 }, () => ({ x: Math.random() * w, y: Math.random() * h, vx: (Math.random() - .5) * .35, vy: (Math.random() - .5) * .35 }));
       }
       function frame() {
         ctx.clearRect(0, 0, w, h);
@@ -589,8 +519,8 @@ a { color: inherit; text-decoration: none; }
         for (let i = 0; i < pts.length; i++) {
           for (let j = i + 1; j < pts.length; j++) {
             const d = Math.hypot(pts[i].x - pts[j].x, pts[i].y - pts[j].y);
-            if (d < 110) {
-              ctx.strokeStyle = 'rgba(195,244,0,' + (0.22 * (1 - d / 110)).toFixed(3) + ')';
+            if (d < 120) {
+              ctx.strokeStyle = 'rgba(195,244,0,' + (0.26 * (1 - d / 120)).toFixed(3) + ')';
               ctx.lineWidth = 1;
               ctx.beginPath(); ctx.moveTo(pts[i].x, pts[i].y); ctx.lineTo(pts[j].x, pts[j].y); ctx.stroke();
             }

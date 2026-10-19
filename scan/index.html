@@ -49,7 +49,7 @@ a { color: inherit; text-decoration: none; }
 .grain { position: fixed; inset: 0; z-index: 0; pointer-events: none; opacity: .06; mix-blend-mode: overlay;
   background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='160' height='160'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='2'/></filter><rect width='100%' height='100%' filter='url(%23n)'/></svg>"); }
 @keyframes drift { to { transform: translate(-6%, 8%) scale(1.15); } }
-#net { position: absolute; inset: 0; width: 100%; height: 100%; z-index: 0; pointer-events: none; opacity: .55; }
+#net { position: fixed; inset: 0; width: 100%; height: 100%; z-index: 0; pointer-events: none; opacity: .7; }
 .lite .orb, .lite .grain, .lite #net { display: none; }
 
 /* ---------- 공통 ---------- */
@@ -183,15 +183,13 @@ a { color: inherit; text-decoration: none; }
 .form-group input, .form-group textarea { width: 100%; background: rgba(244,244,240,.04); border: 1px solid var(--line-2); border-radius: 2px; color: var(--fg); padding: 13px 12px; font: 500 15px/1.3 var(--f-body); letter-spacing: -.02em; outline: none; }
 .form-group input::placeholder, .form-group textarea::placeholder { color: var(--fg-40); }
 .form-group input:focus, .form-group textarea:focus { border-color: var(--lime); background: rgba(195,244,0,.05); }
-.action-btn-group { display: grid; gap: 10px; margin-top: 6px; }
+.action-btn-group { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 6px; }
 .btn-save-device { display: flex; align-items: center; justify-content: center; gap: 10px; padding: 18px; background: var(--lime); color: #111; border: 1px solid var(--lime); border-radius: 2px; font: 800 12.5px/1.3 var(--f-mono); letter-spacing: .08em; text-transform: uppercase; }
 .btn-save-device:active { background: var(--fg); border-color: var(--fg); }
 .btn-save-sheet { display: flex; align-items: center; justify-content: center; gap: 10px; padding: 16px; border: 1px solid var(--line-2); border-radius: 2px; font: 800 12px/1.3 var(--f-mono); letter-spacing: .08em; text-transform: uppercase; }
 .btn-save-sheet:active { background: var(--fg); color: var(--bg); }
 .btn-save-sheet[disabled] { opacity: .5; }
 
-/* 히어로: 네트워크 캔버스 위로 내용이 올라오도록 */
-.hero > *:not(#net) { position: relative; z-index: 1; }
 #toast:empty { display: none; }
 
 /* ---------- 자동 촬영 카메라 ---------- */
@@ -215,6 +213,14 @@ a { color: inherit; text-decoration: none; }
 .cam-actions { width: 100%; max-width: 360px; display: flex; align-items: center; justify-content: space-between; }
 .cam-shutter { width: 68px; height: 68px; border-radius: 50%; background: var(--lime); border: 4px solid #111318; box-shadow: 0 0 0 3px var(--lime); }
 .cam-shutter:active { transform: scale(.94); }
+
+/* 히어로: 이름·소속은 오른쪽 정렬 */
+.who { text-align: right; }
+.role { justify-items: end; }
+.role b span { color: var(--fg); font-weight: 800; }
+.cta { margin-top: 22px; }
+/* 한 줄 제목 */
+.h2.one { font-size: clamp(21px, 6.4vw, 30px); white-space: nowrap; letter-spacing: -.05em; }
 
   </style>
 </head>
@@ -301,9 +307,8 @@ a { color: inherit; text-decoration: none; }
         <div class="form-group"><label>만난 장소 / 메모</label><textarea id="scanMemo" rows="2" placeholder="예: 2026 복지 세미나 네트워킹에서 만남"></textarea></div>
 
         <div class="action-btn-group">
-          <button class="btn-save-device" onclick="saveScannedCardToPhone()"><i class="fa-solid fa-mobile-screen-button"></i> 1. 내 폰 주소록에 저장</button>
-          <button class="btn-save-sheet" id="btnSaveSheet" onclick="saveScannedCardToSheet()"><i class="fa-solid fa-table"></i> 2. 구글 시트 인맥 DB에 등록</button>
-          <button class="btn-save-sheet" id="btnSendMyCard" onclick="sendMyCard()"><i class="fa-solid fa-paper-plane"></i> 3. 내 명함 보내기</button>
+          <button class="btn-save-device" onclick="saveScannedCardToPhone()"><i class="fa-solid fa-mobile-screen-button"></i> 내 폰에 저장</button>
+          <button class="btn-save-sheet" id="btnSendMyCard" onclick="sendMyCard()"><i class="fa-solid fa-paper-plane"></i> 명함 보내기</button>
         </div>
       </div>
     </div>
@@ -754,7 +759,7 @@ a { color: inherit; text-decoration: none; }
       const d = getFormData();
       const phone = (myProfile && myProfile.mobile) || MY_PHONE;
       const callName = d.name ? d.name + (d.title ? ' ' + d.title : '') + '님' : '';
-      const text = '안녕하세요? ' + callName + (callName ? ', ' : '') + '장진현입니다.\n제 전자명함입니다.\n\n장진현 ' + phone + '\n\n홈페이지: ' + HOMEPAGE_URL + '\n\n▶ 아래 링크를 누르면 제 연락처가 바로 저장됩니다.\n' + CARD_PAGE_URL;
+      const text = '안녕하세요? ' + callName + (callName ? ', ' : '') + '장진현입니다.\n제 전자명함입니다.\n\n장진현 ' + phone + '\n\n▶ 아래 링크를 누르면 제 연락처가 바로 저장됩니다.\n' + CARD_PAGE_URL;
 
       if (!myCardGifFile) {
         prefetchMyCardGif();
@@ -781,36 +786,6 @@ a { color: inherit; text-decoration: none; }
 
     function recordShare() {
       google.script.run.recordVisit('SEND_MY_CARD', navigator.userAgent, true);
-    }
-
-    // 2. 구글 시트 인맥 DB에 등록
-    function saveScannedCardToSheet() {
-      const data = getFormData();
-      if (!data.name && !data.mobile) {
-        showToast('성명 또는 전화번호를 입력해주세요.');
-        return;
-      }
-
-      const btn = document.getElementById('btnSaveSheet');
-      btn.disabled = true;
-      btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> 저장 중...';
-
-      google.script.run
-        .withSuccessHandler((res) => {
-          btn.disabled = false;
-          btn.innerHTML = '<i class="fa-solid fa-table"></i> 2. 구글 시트 인맥 DB에 등록';
-          if (res && res.success) {
-            showToast('✅ 구글 시트 [수취명함목록]에 저장 완료!');
-          } else {
-            showToast('❌ 시트 저장 실패: ' + (res.error || '알 수 없는 오류'));
-          }
-        })
-        .withFailureHandler((err) => {
-          btn.disabled = false;
-          btn.innerHTML = '<i class="fa-solid fa-table"></i> 2. 구글 시트 인맥 DB에 등록';
-          showToast('❌ 오류: ' + err.message);
-        })
-        .saveScannedCard(data);
     }
 
     // ========================================================
