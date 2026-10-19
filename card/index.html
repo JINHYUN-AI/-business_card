@@ -934,26 +934,36 @@
     // ========================================================
     // vCard (.vcf) 생성 및 스마트폰 연락처 바로 저장
     // ========================================================
+    function vcEsc(v) {
+      return String(v || '')
+        .replace(/\\/g, '\\\\')
+        .replace(/\r?\n/g, '\\n')
+        .replace(/,/g, '\\,')
+        .replace(/;/g, '\\;');
+    }
+
     function generateVCardString(data) {
-      return [
-        'BEGIN:VCARD',
-        'VERSION:3.0',
-        `FN:${data.name || ''}`,
-        `N:${data.name || ''};;;;`,
-        `ORG:${data.organization || ''};${data.department || ''}`,
-        `TITLE:${data.title || ''}`,
-        `TEL;TYPE=CELL:${data.mobile || ''}`,
-        `TEL;TYPE=WORK:${data.tel || ''}`,
-        `EMAIL;TYPE=WORK:${data.email || ''}`,
-        `ADR;TYPE=WORK:;;${data.address || ''};;;;`,
-        `URL:${data.website || ''}`,
-        `NOTE:${data.memo || ''}`,
-        'END:VCARD'
-      ].join('\r\n');
+      const full = String(data.name || '').trim();
+      // 한글 이름은 첫 글자를 성, 나머지를 이름으로 나눠 연락처 앱에서 자연스럽게 보이게 함
+      let family = '', given = full;
+      if (/^[가-힣]{2,4}$/.test(full)) { family = full.charAt(0); given = full.slice(1); }
+      const lines = ['BEGIN:VCARD', 'VERSION:3.0'];
+      lines.push('N:' + vcEsc(family) + ';' + vcEsc(given) + ';;;');
+      lines.push('FN:' + vcEsc(full));
+      if (data.organization || data.department) lines.push('ORG:' + vcEsc(data.organization) + (data.department ? ';' + vcEsc(data.department) : ''));
+      if (data.title) lines.push('TITLE:' + vcEsc(data.title));
+      if (data.mobile) lines.push('TEL;TYPE=CELL:' + vcEsc(data.mobile));
+      if (data.tel) lines.push('TEL;TYPE=WORK,VOICE:' + vcEsc(data.tel));
+      if (data.email) lines.push('EMAIL;TYPE=INTERNET:' + vcEsc(data.email));
+      if (data.address) lines.push('ADR;TYPE=WORK:;;' + vcEsc(data.address) + ';;;;');
+      if (data.website) lines.push('URL:' + vcEsc(data.website));
+      if (data.memo) lines.push('NOTE:' + vcEsc(data.memo));
+      lines.push('END:VCARD');
+      return lines.join('\r\n') + '\r\n';
     }
 
     function triggerVCardDownload(vcardContent, filename) {
-      const blob = new Blob([vcardContent], { type: 'text/vcard;charset=utf-8;' });
+      const blob = new Blob([vcardContent], { type: 'text/vcard' });
       const url = URL.createObjectURL(blob);
       const link = document.createElement('a');
       link.href = url;
