@@ -941,7 +941,7 @@
 
     // 안드로이드: 연락처 '새로 만들기' 화면을 값이 채워진 채로 직접 열기 (파일 형식 문제 없음)
     // 그 외(아이폰/PC 등)나 열리지 않는 환경: vCard(.vcf) 파일 내려받기
-    function saveContact(data, vcard, filename) {
+    function saveContact(data, vcard, filename, auto) {
       if (/Android/i.test(navigator.userAgent)) {
         const parts = [
           'S.name=' + encodeURIComponent(data.name || ''),
@@ -959,7 +959,7 @@
         window.location.href = 'intent:#Intent;action=android.intent.action.INSERT;type=vnd.android.cursor.dir/contact;' + parts.join(';') + ';end';
         setTimeout(() => {
           document.removeEventListener('visibilitychange', onHide);
-          if (!left) triggerVCardDownload(vcard, filename); // 연락처 앱이 안 열렸으면 파일로 대체
+          if (!left && !auto) triggerVCardDownload(vcard, filename); // 연락처 앱이 안 열렸으면 파일로 대체
         }, 1500);
         return;
       }
@@ -1057,9 +1057,10 @@
         return;
       }
 
-      const vcard = generateVCardString(data);
-      const filename = `${data.name || '명함'}_연락처.vcf`;
-      saveContact(data, vcard, filename);
+      const vcData = Object.assign({}, data, { name: [data.name, data.title].filter(Boolean).join(' ') });
+      const vcard = generateVCardString(vcData);
+      const filename = `${vcData.name || '명함'}_연락처.vcf`;
+      saveContact(vcData, vcard, filename);
       showToast('📲 내 폰 연락처 앱이 열립니다. [저장]을 누르세요!');
 
       // 백그라운드로 시트 저장도 함께 트리거
@@ -1087,7 +1088,7 @@
     function buildMyVcardFile() {
       const p = myProfile || {};
       const vcard = generateVCardString({
-        name: p.name || '장진현',
+        name: [p.name || '장진현', p.title || '사무국장'].filter(Boolean).join(' '),
         organization: p.organization || '등대의집',
         department: '',
         title: p.title || '사무국장',
@@ -1104,7 +1105,8 @@
     async function sendMyCard() {
       const d = getFormData();
       const phone = (myProfile && myProfile.mobile) || MY_PHONE;
-      const text = '안녕하세요' + (d.name ? ' ' + d.name + '님' : '') + ', 장진현입니다.\n제 전자명함입니다.\n\n장진현 ' + phone + '\n\n홈페이지: ' + HOMEPAGE_URL + '\n연락처 저장: ' + CARD_PAGE_URL;
+      const callName = d.name ? d.name + (d.title ? ' ' + d.title : '') + '님' : '';
+      const text = '안녕하세요? ' + callName + (callName ? ', ' : '') + '장진현입니다.\n제 전자명함입니다.\n\n장진현 ' + phone + '\n\n홈페이지: ' + HOMEPAGE_URL + '\n\n▶ 아래 링크를 누르면 제 연락처가 바로 저장됩니다.\n' + CARD_PAGE_URL + '?save=1';
 
       if (!myCardGifFile) {
         prefetchMyCardGif();
