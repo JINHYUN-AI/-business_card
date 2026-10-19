@@ -706,6 +706,13 @@
          [뷰 1] 내 디지털 전자명함 (NFC / QR 화면)
          ======================================================== -->
     <div id="viewMyCard" class="card-wrapper">
+      <!-- 내 전자명함 GIF (build가 src를 채움) -->
+      <div class="card-gif-box" style="width:100%;border-radius:16px;overflow:hidden;background:#111318;line-height:0;min-height:120px;">
+        <img id="cardGif" src="../card.gif" alt="장진현 전자명함" style="width:100%;height:auto;display:block;" onerror="this.parentNode.style.display='none'">
+      </div>
+
+      <!-- 프로필 값을 채우는 기존 요소(화면에는 숨김, 연락처 저장 등에 사용) -->
+      <div style="display:none;">
       <div class="nfc-badge">
         <i class="fa-solid fa-wifi" style="transform: rotate(90deg);"></i>
         NFC TAP & CONNECT
@@ -728,6 +735,7 @@
       <p class="person-intro" id="myIntro">
         코딩하는 사무국장 장진현입니다.
       </p>
+      </div>
 
       <!-- 핵심 액션: 상대방 폰 연락처에 저장 -->
       <button class="btn-save-contact" onclick="downloadMyVCard()">
@@ -879,9 +887,6 @@
       if (p.organization) document.getElementById('myOrg').innerText = p.organization;
       if (p.intro) document.getElementById('myIntro').innerText = p.intro;
       
-      if (p.photo_url_display) {
-        document.getElementById('myAvatar').src = p.photo_url_display;
-      }
       
       if (p.mobile) {
         document.getElementById('myMobile').innerText = p.mobile;
