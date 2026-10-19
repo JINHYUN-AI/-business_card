@@ -265,6 +265,10 @@ a { color: inherit; text-decoration: none; }
 .cr-card .rl { font-size: 12px; color: var(--amber); font-weight: 700; }
 .cr-card .ft { font-size: 12px; line-height: 1.5; color: var(--fg-60); word-break: keep-all; }
 
+/* 소속 두 줄: JS가 이름 글자 폭에 맞춰 글자 크기를 늘려 줄 길이를 맞춘다 */
+.role { gap: 6px; }
+.role .fit { display: inline-block; white-space: nowrap; font-size: 13px; line-height: 1.25; }
+
   </style>
 </head>
 <body>
@@ -294,8 +298,8 @@ a { color: inherit; text-decoration: none; }
         <div class="who">
           <h1 class="name rise" style="--i:3" data-bind="name">장진현</h1>
           <div class="role rise" style="--i:4">
-            <b><span data-bind="organization">등대의집</span> <span data-bind="title">사무국장</span></b>
-            <span>평택대학교 겸임교수</span>
+            <b class="fit"><span data-bind="organization">등대의집</span> <span data-bind="title">사무국장</span></b>
+            <span class="fit">평택대학교 겸임교수</span>
           </div>
         </div>
       </div>
@@ -375,6 +379,20 @@ a { color: inherit; text-decoration: none; }
       }, 200);
     }
 
+    // 이름 글자 폭에 맞춰 소속 두 줄의 글자 크기를 조정해 세 줄의 폭을 같게 맞춘다
+    function fitRole() {
+      const nm = $('.name');
+      if (!nm) return;
+      const range = document.createRange();
+      range.selectNodeContents(nm);
+      const target = range.getBoundingClientRect().width;
+      document.querySelectorAll('.role .fit').forEach((el) => {
+        el.style.fontSize = '13px';
+        const w = el.getBoundingClientRect().width;
+        if (w > 0 && target > 0) el.style.fontSize = Math.max(11, Math.min(26, 13 * target / w)).toFixed(2) + 'px';
+      });
+    }
+
     // ---------- 프로필 반영 ----------
     function renderProfile(p) {
       const v = Object.assign({}, DEFAULTS, p || {});
@@ -383,6 +401,7 @@ a { color: inherit; text-decoration: none; }
         const val = v[el.dataset.bind];
         if (val) el.textContent = val;
       });
+      fitRole();
     }
 
     function loadProfile() {
@@ -667,6 +686,9 @@ a { color: inherit; text-decoration: none; }
       loadProfile();
       loadHistory();
       startNetwork();
+      fitRole();
+      if (document.fonts && document.fonts.ready) document.fonts.ready.then(fitRole);
+      window.addEventListener('resize', fitRole);
       setTimeout(completeLoader, 500); // 기본값을 이미 그렸으므로 서버 응답을 기다리지 않는다
       // 문자/카톡 링크(/s 또는 ?save=1)로 들어오면 연락처 파일을 곧바로 내려받음
       if (new URLSearchParams(location.search).get('save') === '1' || window.FORCE_SAVE === true) {
