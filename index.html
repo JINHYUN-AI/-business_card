@@ -1,0 +1,1142 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <title>명함 스캐너 | 장진현</title>
+  
+  <!-- 웹 폰트 (Outfit & Pretendard) -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" as="style" crossorigin href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css" />
+  
+  <!-- FontAwesome 아이콘 -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+  
+  <!-- QRCode.js 라이브러리 -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+
+  <script src="gas-bridge.js"></script>
+
+  <style>
+    :root {
+      --bg-dark: #0B0F19;
+      --card-bg: rgba(22, 30, 49, 0.75);
+      --card-border: rgba(255, 255, 255, 0.08);
+      --primary: #3B82F6;
+      --primary-glow: rgba(59, 130, 246, 0.35);
+      --accent: #38BDF8;
+      --accent-glow: rgba(56, 189, 248, 0.3);
+      --success: #10B981;
+      --text-main: #F8FAFC;
+      --text-sub: #94A3B8;
+      --text-muted: #64748B;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    body {
+      font-family: "Pretendard Variable", -apple-system, BlinkMacSystemFont, system-ui, Roboto, sans-serif;
+      background-color: var(--bg-dark);
+      background-image: 
+        radial-gradient(at 0% 0%, rgba(30, 58, 138, 0.25) 0px, transparent 50%),
+        radial-gradient(at 100% 100%, rgba(15, 118, 110, 0.2) 0px, transparent 50%);
+      color: var(--text-main);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding-bottom: 40px;
+      overflow-x: hidden;
+    }
+
+    /* ========================================================
+       7장 기관용 표준 인트로 로딩 화면
+       ======================================================== */
+    #introLoader {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: #0B0F19;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      z-index: 99999;
+      transition: opacity 0.35s ease-out;
+    }
+
+    .loader-ci {
+      width: 74px;
+      height: 74px;
+      border-radius: 50%;
+      object-fit: cover;
+      animation: pulse-glow 1.8s infinite ease-in-out;
+      box-shadow: 0 0 25px rgba(56, 189, 248, 0.4);
+      margin-bottom: 24px;
+      background: #1E293B;
+      padding: 4px;
+      border: 2px solid rgba(56, 189, 248, 0.6);
+    }
+
+    @keyframes pulse-glow {
+      0%, 100% {
+        transform: scale(1);
+        box-shadow: 0 0 20px rgba(56, 189, 248, 0.3);
+      }
+      50% {
+        transform: scale(1.05);
+        box-shadow: 0 0 35px rgba(56, 189, 248, 0.6);
+      }
+    }
+
+    .loader-title {
+      font-family: 'Outfit', sans-serif;
+      font-size: 24px;
+      font-weight: 800;
+      letter-spacing: -0.5px;
+      background: linear-gradient(135deg, #FFFFFF 0%, #38BDF8 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      margin-bottom: 6px;
+    }
+
+    .loader-sub {
+      font-size: 13px;
+      color: var(--text-sub);
+      margin-bottom: 30px;
+    }
+
+    .loader-progress-track {
+      width: 280px;
+      height: 4px;
+      background: rgba(255, 255, 255, 0.1);
+      border-radius: 999px;
+      overflow: hidden;
+      margin-bottom: 14px;
+    }
+
+    .loader-progress-bar {
+      width: 0%;
+      height: 100%;
+      background: linear-gradient(90deg, #3B82F6, #38BDF8);
+      border-radius: 999px;
+      transition: width 0.3s ease;
+    }
+
+    .loader-status-msg {
+      font-size: 12px;
+      color: var(--text-muted);
+      height: 16px;
+    }
+
+    /* ========================================================
+       메인 래퍼 및 헤더
+       ======================================================== */
+    .app-container {
+      width: 100%;
+      max-width: 440px;
+      padding: 16px;
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+
+    /* 상단 세그먼트 탭 */
+    .tab-switch {
+      display: flex;
+      background: rgba(15, 23, 42, 0.8);
+      backdrop-filter: blur(12px);
+      border: 1px solid var(--card-border);
+      border-radius: 14px;
+      padding: 4px;
+      position: sticky;
+      top: 12px;
+      z-index: 100;
+    }
+
+    .tab-btn {
+      flex: 1;
+      padding: 12px 14px;
+      border: none;
+      background: transparent;
+      color: var(--text-sub);
+      font-size: 14px;
+      font-weight: 600;
+      border-radius: 10px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      transition: all 0.25s ease;
+    }
+
+    .tab-btn.active {
+      background: linear-gradient(135deg, #1E3A8A 0%, #2563EB 100%);
+      color: #FFFFFF;
+      box-shadow: 0 4px 14px rgba(37, 99, 235, 0.4);
+    }
+
+    /* ========================================================
+       [모드 1] 내 디지털 전자명함 (NFC / QR 화면)
+       ======================================================== */
+    .card-wrapper {
+      position: relative;
+      background: var(--card-bg);
+      backdrop-filter: blur(20px);
+      -webkit-backdrop-filter: blur(20px);
+      border: 1px solid var(--card-border);
+      border-radius: 24px;
+      padding: 28px 24px;
+      box-shadow: 0 20px 40px rgba(0, 0, 0, 0.45);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      text-align: center;
+      overflow: hidden;
+    }
+
+    .card-wrapper::before {
+      content: '';
+      position: absolute;
+      top: -60px;
+      right: -60px;
+      width: 140px;
+      height: 140px;
+      background: radial-gradient(circle, var(--accent-glow) 0%, transparent 70%);
+      pointer-events: none;
+    }
+
+    .nfc-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      background: rgba(56, 189, 248, 0.12);
+      border: 1px solid rgba(56, 189, 248, 0.25);
+      color: var(--accent);
+      padding: 5px 12px;
+      border-radius: 20px;
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 0.5px;
+      margin-bottom: 20px;
+      font-family: 'Outfit', sans-serif;
+    }
+
+    .profile-avatar-box {
+      position: relative;
+      width: 104px;
+      height: 104px;
+      margin-bottom: 18px;
+    }
+
+    .profile-avatar {
+      width: 100%;
+      height: 100%;
+      border-radius: 50%;
+      object-fit: cover;
+      border: 3px solid rgba(255, 255, 255, 0.15);
+      background: #1E293B;
+      box-shadow: 0 10px 25px rgba(0, 0, 0, 0.35);
+    }
+
+    .profile-avatar-glow {
+      position: absolute;
+      inset: -4px;
+      border-radius: 50%;
+      background: linear-gradient(135deg, #38BDF8, #3B82F6, #10B981);
+      z-index: -1;
+      opacity: 0.6;
+      filter: blur(6px);
+    }
+
+    .name-title-box {
+      margin-bottom: 12px;
+    }
+
+    .person-name {
+      font-size: 26px;
+      font-weight: 800;
+      letter-spacing: -0.5px;
+      color: #FFFFFF;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+    }
+
+    .person-title {
+      font-size: 14px;
+      font-weight: 600;
+      color: var(--accent);
+      margin-top: 4px;
+    }
+
+    .person-org {
+      font-size: 13px;
+      color: var(--text-sub);
+      margin-top: 2px;
+    }
+
+    .person-intro {
+      font-size: 14px;
+      color: #CBD5E1;
+      background: rgba(15, 23, 42, 0.6);
+      border: 1px solid rgba(255, 255, 255, 0.05);
+      padding: 12px 18px;
+      border-radius: 14px;
+      line-height: 1.5;
+      margin: 14px 0 22px;
+      width: 100%;
+      word-break: keep-all;
+    }
+
+    /* 대형 연락처 저장 버튼 */
+    .btn-save-contact {
+      width: 100%;
+      padding: 16px;
+      background: linear-gradient(135deg, #2563EB 0%, #1D4ED8 100%);
+      color: #FFFFFF;
+      border: none;
+      border-radius: 16px;
+      font-size: 16px;
+      font-weight: 700;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+      cursor: pointer;
+      box-shadow: 0 10px 24px rgba(37, 99, 235, 0.4);
+      transition: all 0.2s ease;
+      margin-bottom: 16px;
+    }
+
+    .btn-save-contact:active {
+      transform: scale(0.98);
+      box-shadow: 0 4px 12px rgba(37, 99, 235, 0.3);
+    }
+
+    /* 퀵 인터랙션 버튼 그리드 (전화, 문자, 메일, QR) */
+    .quick-actions-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 10px;
+      width: 100%;
+      margin-bottom: 24px;
+    }
+
+    .quick-btn {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      background: rgba(30, 41, 59, 0.7);
+      border: 1px solid var(--card-border);
+      color: var(--text-sub);
+      padding: 12px 6px;
+      border-radius: 14px;
+      text-decoration: none;
+      font-size: 11px;
+      font-weight: 600;
+      transition: all 0.2s ease;
+    }
+
+    .quick-btn i {
+      font-size: 18px;
+      color: var(--accent);
+    }
+
+    .quick-btn:active {
+      background: rgba(56, 189, 248, 0.15);
+      color: #FFFFFF;
+      border-color: rgba(56, 189, 248, 0.3);
+    }
+
+    /* 상세 연락처 리스트 */
+    .contact-list {
+      width: 100%;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      text-align: left;
+    }
+
+    .contact-item {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      background: rgba(15, 23, 42, 0.4);
+      border: 1px solid rgba(255, 255, 255, 0.04);
+      padding: 12px 14px;
+      border-radius: 12px;
+      text-decoration: none;
+      color: var(--text-main);
+    }
+
+    .contact-item-icon {
+      width: 34px;
+      height: 34px;
+      border-radius: 10px;
+      background: rgba(59, 130, 246, 0.15);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: var(--accent);
+      font-size: 14px;
+      flex-shrink: 0;
+    }
+
+    .contact-item-content {
+      flex: 1;
+      overflow: hidden;
+    }
+
+    .contact-item-label {
+      font-size: 11px;
+      color: var(--text-muted);
+      margin-bottom: 2px;
+    }
+
+    .contact-item-val {
+      font-size: 13px;
+      font-weight: 500;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      color: #E2E8F0;
+    }
+
+    /* ========================================================
+       [모드 2] 상대방 명함 스캐너 (AI OCR 모드)
+       ======================================================== */
+    .scan-wrapper {
+      background: var(--card-bg);
+      backdrop-filter: blur(20px);
+      border: 1px solid var(--card-border);
+      border-radius: 24px;
+      padding: 24px;
+      box-shadow: 0 20px 40px rgba(0, 0, 0, 0.45);
+      display: flex;
+      flex-direction: column;
+      gap: 18px;
+    }
+
+    .scan-header {
+      text-align: center;
+    }
+
+    .scan-header h3 {
+      font-size: 20px;
+      font-weight: 800;
+      color: #FFFFFF;
+      margin-bottom: 6px;
+    }
+
+    .scan-header p {
+      font-size: 13px;
+      color: var(--text-sub);
+    }
+
+    /* 카메라 촬영 드롭존 */
+    .camera-dropzone {
+      position: relative;
+      border: 2px dashed rgba(56, 189, 248, 0.4);
+      background: rgba(15, 23, 42, 0.6);
+      border-radius: 20px;
+      padding: 32px 16px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 12px;
+      cursor: pointer;
+      overflow: hidden;
+      transition: all 0.25s ease;
+    }
+
+    .camera-dropzone:active {
+      border-color: var(--accent);
+      background: rgba(56, 189, 248, 0.08);
+    }
+
+    .camera-icon-circle {
+      width: 64px;
+      height: 64px;
+      border-radius: 50%;
+      background: linear-gradient(135deg, rgba(37, 99, 235, 0.2) 0%, rgba(56, 189, 248, 0.2) 100%);
+      border: 1px solid rgba(56, 189, 248, 0.3);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 26px;
+      color: var(--accent);
+    }
+
+    .camera-dropzone span {
+      font-size: 14px;
+      font-weight: 600;
+      color: #F1F5F9;
+    }
+
+    .camera-dropzone small {
+      font-size: 12px;
+      color: var(--text-muted);
+    }
+
+    #cardImageInput {
+      display: none;
+    }
+
+    /* 이미지 미리보기 */
+    #imagePreviewBox {
+      display: none;
+      position: relative;
+      width: 100%;
+      border-radius: 16px;
+      overflow: hidden;
+      border: 1px solid var(--card-border);
+    }
+
+    #previewImg {
+      width: 100%;
+      max-height: 240px;
+      object-fit: contain;
+      background: #000000;
+      display: block;
+    }
+
+    .btn-reupload {
+      position: absolute;
+      top: 10px;
+      right: 10px;
+      background: rgba(15, 23, 42, 0.85);
+      border: 1px solid var(--card-border);
+      color: #FFFFFF;
+      padding: 6px 12px;
+      border-radius: 8px;
+      font-size: 12px;
+      cursor: pointer;
+    }
+
+    /* 분석 중 인디케이터 */
+    #ocrLoading {
+      display: none;
+      flex-direction: column;
+      align-items: center;
+      gap: 12px;
+      padding: 24px;
+    }
+
+    .ocr-spinner {
+      width: 40px;
+      height: 40px;
+      border: 3px solid rgba(56, 189, 248, 0.2);
+      border-top-color: var(--accent);
+      border-radius: 50%;
+      animation: spin 1s linear infinite;
+    }
+
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+
+    /* 결과 편집 폼 */
+    #resultFormBox {
+      display: none;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    .form-group {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+
+    .form-group label {
+      font-size: 11px;
+      font-weight: 600;
+      color: var(--text-sub);
+    }
+
+    .form-group input, .form-group textarea {
+      background: rgba(15, 23, 42, 0.8);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      border-radius: 10px;
+      padding: 10px 12px;
+      color: #FFFFFF;
+      font-size: 13px;
+      font-family: inherit;
+    }
+
+    .form-group input:focus, .form-group textarea:focus {
+      outline: none;
+      border-color: var(--accent);
+      box-shadow: 0 0 0 2px rgba(56, 189, 248, 0.2);
+    }
+
+    .form-row {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+    }
+
+    .action-btn-group {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      margin-top: 8px;
+    }
+
+    .btn-save-device {
+      width: 100%;
+      padding: 14px;
+      background: linear-gradient(135deg, #10B981 0%, #059669 100%);
+      color: #FFFFFF;
+      border: none;
+      border-radius: 14px;
+      font-size: 15px;
+      font-weight: 700;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      box-shadow: 0 8px 20px rgba(16, 185, 129, 0.35);
+    }
+
+    .btn-save-sheet {
+      width: 100%;
+      padding: 13px;
+      background: rgba(30, 41, 59, 0.9);
+      border: 1px solid var(--card-border);
+      color: #E2E8F0;
+      border-radius: 14px;
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+    }
+
+    /* ========================================================
+       QR 모달
+       ======================================================== */
+    .modal-backdrop {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.75);
+      backdrop-filter: blur(8px);
+      z-index: 1000;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+    }
+
+    .modal-content {
+      background: #1E293B;
+      border: 1px solid var(--card-border);
+      border-radius: 24px;
+      padding: 28px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      max-width: 340px;
+      width: 100%;
+      box-shadow: 0 25px 50px rgba(0, 0, 0, 0.5);
+    }
+
+    .qr-box {
+      background: #FFFFFF;
+      padding: 16px;
+      border-radius: 16px;
+      margin: 18px 0;
+    }
+
+    .btn-close-modal {
+      width: 100%;
+      padding: 12px;
+      background: rgba(255, 255, 255, 0.1);
+      border: none;
+      border-radius: 12px;
+      color: #FFFFFF;
+      font-weight: 600;
+      cursor: pointer;
+      margin-top: 8px;
+    }
+
+    /* 토스트 알림 */
+    #toast {
+      position: fixed;
+      bottom: 24px;
+      left: 50%;
+      transform: translateX(-50%) translateY(100px);
+      background: rgba(15, 23, 42, 0.95);
+      border: 1px solid var(--accent);
+      color: #FFFFFF;
+      padding: 12px 24px;
+      border-radius: 999px;
+      font-size: 13px;
+      font-weight: 600;
+      box-shadow: 0 10px 25px rgba(0, 0, 0, 0.4);
+      transition: transform 0.3s cubic-bezier(0.18, 0.89, 0.32, 1.28);
+      z-index: 9999;
+      pointer-events: none;
+    }
+
+    #toast.show {
+      transform: translateX(-50%) translateY(0);
+    }
+  </style>
+</head>
+<body>
+
+  <!-- ========================================================
+       7장 기관용 표준 인트로 로딩 화면
+       ======================================================== -->
+  <div id="introLoader">
+    <img src="https://lh3.googleusercontent.com/d/18qeVrRkZh3BM0LTUcO35E-cmWcCIssJg" alt="등대의집 CI" class="loader-ci">
+    <div class="loader-title">JIN HYUN . AI</div>
+    <div class="loader-sub">AI 명함 스캐너 & 인맥 관리</div>
+    <div class="loader-progress-track">
+      <div class="loader-progress-bar" id="loaderBar"></div>
+    </div>
+    <div class="loader-status-msg" id="loaderMsg">프로필 및 AI 엔진 동기화 중...</div>
+  </div>
+
+  <!-- 토스트 메시지 -->
+  <div id="toast"></div>
+
+  <div class="app-container">
+    
+    <!-- ========================================================
+         [뷰 2] 상대방 명함 스캔 및 AI OCR 수취 화면
+         ======================================================== -->
+    <div id="viewScanner" class="scan-wrapper" style="display: flex;">
+      <div class="scan-header">
+        <h3>명함 AI 촬영 스캔</h3>
+        <p>명함을 찍으면 AI가 정보를 읽어 폰 연락처와 시트에 저장합니다</p>
+      </div>
+
+      <!-- 카메라 촬영 입력 박스 -->
+      <div class="camera-dropzone" id="cameraDropzone" onclick="triggerCamera()">
+        <div class="camera-icon-circle">
+          <i class="fa-solid fa-camera"></i>
+        </div>
+        <span>명함 촬영 또는 사진 선택</span>
+        <small>스마트폰 카메라로 명함을 또렷하게 비춰주세요</small>
+      </div>
+      <input type="file" id="cardImageInput" accept="image/*" capture="environment" onchange="handleImageSelected(event)">
+
+      <!-- 이미지 미리보기 박스 -->
+      <div id="imagePreviewBox">
+        <img id="previewImg" src="" alt="촬영 명함">
+        <button class="btn-reupload" onclick="triggerCamera()">
+          <i class="fa-solid fa-rotate-right"></i> 다시 촬영
+        </button>
+      </div>
+
+      <!-- OCR 진행 중 로딩 -->
+      <div id="ocrLoading">
+        <div class="ocr-spinner"></div>
+        <div style="font-size: 14px; font-weight: 700; color: var(--accent);">Gemini AI가 명함을 정밀 분석 중입니다...</div>
+        <div style="font-size: 12px; color: var(--text-muted);">철통 방어 키 로테이션 가동 중 (약 1~2초)</div>
+      </div>
+
+      <!-- OCR 인식 결과 및 저장 폼 -->
+      <div id="resultFormBox">
+        <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 4px;">
+          <h4 style="font-size: 15px; font-weight: 700; color: #34D399;">
+            <i class="fa-solid fa-check-double"></i> 인식 결과 확인/수정
+          </h4>
+          <span style="font-size: 11px; color: var(--text-muted);">필요시 텍스트를 수정하세요</span>
+        </div>
+
+        <div class="form-row">
+          <div class="form-group">
+            <label>성명 *</label>
+            <input type="text" id="scanName" placeholder="홍길동">
+          </div>
+          <div class="form-group">
+            <label>직책/직함</label>
+            <input type="text" id="scanTitle" placeholder="대표이사 / 부장">
+          </div>
+        </div>
+
+        <div class="form-row">
+          <div class="form-group">
+            <label>회사/기관명</label>
+            <input type="text" id="scanOrg" placeholder="(주)한국복지">
+          </div>
+          <div class="form-group">
+            <label>부서</label>
+            <input type="text" id="scanDept" placeholder="기획팀">
+          </div>
+        </div>
+
+        <div class="form-row">
+          <div class="form-group">
+            <label>휴대전화 *</label>
+            <input type="tel" id="scanMobile" placeholder="010-1234-5678">
+          </div>
+          <div class="form-group">
+            <label>유선/회사전화</label>
+            <input type="tel" id="scanTel" placeholder="02-123-4567">
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label>이메일</label>
+          <input type="email" id="scanEmail" placeholder="user@company.com">
+        </div>
+
+        <div class="form-group">
+          <label>주소</label>
+          <input type="text" id="scanAddress" placeholder="서울특별시 강남구 ...">
+        </div>
+
+        <div class="form-group">
+          <label>웹사이트</label>
+          <input type="url" id="scanWebsite" placeholder="https://...">
+        </div>
+
+        <div class="form-group">
+          <label>만난 장소 / 메모</label>
+          <textarea id="scanMemo" rows="2" placeholder="예: 2026 복지 세미나 네트워킹에서 만남"></textarea>
+        </div>
+
+        <!-- 액션 버튼 -->
+        <div class="action-btn-group">
+          <button class="btn-save-device" onclick="saveScannedCardToPhone()">
+            <i class="fa-solid fa-mobile-screen-button"></i>
+            1. 내 폰 주소록에 바로 저장 (.vcf)
+          </button>
+          <button class="btn-save-sheet" id="btnSaveSheet" onclick="saveScannedCardToSheet()">
+            <i class="fa-solid fa-table"></i>
+            2. 구글 시트 인맥 DB에 등록
+          </button>
+          <button class="btn-save-sheet" id="btnSendMyCard" onclick="sendMyCard()">
+            <i class="fa-solid fa-paper-plane"></i>
+            3. 내 명함(GIF) 보내기
+          </button>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <script>
+    // 전역 상태
+    let myProfile = {};
+    let currentScannedData = null;
+    let selectedImageBase64 = null;
+
+    // ========================================================
+    // 초기 부팅 및 로더 라이프사이클
+    // ========================================================
+    window.addEventListener('DOMContentLoaded', () => {
+      startLoader();
+      loadProfileData();
+    });
+
+    function startLoader() {
+      const bar = document.getElementById('loaderBar');
+      const msg = document.getElementById('loaderMsg');
+      
+      let progress = 10;
+      bar.style.width = progress + '%';
+
+      const interval = setInterval(() => {
+        if (progress < 85) {
+          progress += Math.floor(Math.random() * 15) + 5;
+          bar.style.width = progress + '%';
+        }
+      }, 200);
+
+      window._loaderInterval = interval;
+    }
+
+    function completeLoader() {
+      clearInterval(window._loaderInterval);
+      const bar = document.getElementById('loaderBar');
+      const loader = document.getElementById('introLoader');
+      
+      bar.style.width = '100%';
+      setTimeout(() => {
+        loader.style.opacity = '0';
+        setTimeout(() => {
+          loader.style.display = 'none';
+        }, 350);
+      }, 300);
+    }
+
+    // ========================================================
+    // 프로필 데이터 로드
+    // ========================================================
+    function loadProfileData() {
+      google.script.run
+        .withSuccessHandler((res) => {
+          if (res && res.success && res.profile) myProfile = res.profile;
+          completeLoader();
+        })
+        .withFailureHandler((err) => { console.error(err); completeLoader(); })
+        .getProfileData();
+    }
+
+    // ========================================================
+    // vCard (.vcf) 생성 및 스마트폰 연락처 바로 저장
+    // ========================================================
+    function generateVCardString(data) {
+      return [
+        'BEGIN:VCARD',
+        'VERSION:3.0',
+        `FN:${data.name || ''}`,
+        `N:${data.name || ''};;;;`,
+        `ORG:${data.organization || ''};${data.department || ''}`,
+        `TITLE:${data.title || ''}`,
+        `TEL;TYPE=CELL:${data.mobile || ''}`,
+        `TEL;TYPE=WORK:${data.tel || ''}`,
+        `EMAIL;TYPE=WORK:${data.email || ''}`,
+        `ADR;TYPE=WORK:;;${data.address || ''};;;;`,
+        `URL:${data.website || ''}`,
+        `NOTE:${data.memo || ''}`,
+        'END:VCARD'
+      ].join('\r\n');
+    }
+
+    function triggerVCardDownload(vcardContent, filename) {
+      const blob = new Blob([vcardContent], { type: 'text/vcard;charset=utf-8;' });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.setAttribute('download', filename);
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      setTimeout(() => URL.revokeObjectURL(url), 1000);
+    }
+
+    // ========================================================
+    // 카메라 촬영 및 Gemini AI OCR 스캔
+    // ========================================================
+    function triggerCamera() {
+      document.getElementById('cardImageInput').click();
+    }
+
+    function handleImageSelected(event) {
+      const file = event.target.files[0];
+      if (!file) return;
+
+      const reader = new FileReader();
+      reader.onload = function(e) {
+        selectedImageBase64 = e.target.result;
+        
+        // 미리보기 표시
+        document.getElementById('previewImg').src = selectedImageBase64;
+        document.getElementById('imagePreviewBox').style.display = 'block';
+        document.getElementById('cameraDropzone').style.display = 'none';
+        
+        // AI OCR 호출 시작
+        runGeminiOcr(selectedImageBase64, file.type);
+      };
+      reader.readAsDataURL(file);
+    }
+
+    function runGeminiOcr(base64Data, mimeType) {
+      const loading = document.getElementById('ocrLoading');
+      const formBox = document.getElementById('resultFormBox');
+      
+      loading.style.display = 'flex';
+      formBox.style.display = 'none';
+
+      google.script.run
+        .withSuccessHandler((res) => {
+          loading.style.display = 'none';
+          if (res && res.success && res.data) {
+            currentScannedData = res.data;
+            fillScannedForm(res.data);
+            formBox.style.display = 'flex';
+            showToast('✨ AI 명함 분석이 완료되었습니다!');
+          } else {
+            showToast('⚠️ 인식 실패: ' + (res.error || '정보를 읽지 못했습니다.'));
+            formBox.style.display = 'flex'; // 빈 폼이라도 직접 입력할 수 있도록 표출
+          }
+        })
+        .withFailureHandler((err) => {
+          loading.style.display = 'none';
+          showToast('❌ 오류 발생: ' + err.message);
+          formBox.style.display = 'flex';
+        })
+        .scanBusinessCardWithGemini(base64Data, mimeType);
+    }
+
+    function fillScannedForm(d) {
+      document.getElementById('scanName').value = d.name || '';
+      document.getElementById('scanTitle').value = d.title || '';
+      document.getElementById('scanOrg').value = d.organization || '';
+      document.getElementById('scanDept').value = d.department || '';
+      document.getElementById('scanMobile').value = d.mobile || '';
+      document.getElementById('scanTel').value = d.tel || '';
+      document.getElementById('scanEmail').value = d.email || '';
+      document.getElementById('scanAddress').value = d.address || '';
+      document.getElementById('scanWebsite').value = d.website || '';
+      document.getElementById('scanMemo').value = d.memo || '';
+      prefetchMyCardGif();
+    }
+
+    function getFormData() {
+      return {
+        name: document.getElementById('scanName').value.trim(),
+        title: document.getElementById('scanTitle').value.trim(),
+        organization: document.getElementById('scanOrg').value.trim(),
+        department: document.getElementById('scanDept').value.trim(),
+        mobile: document.getElementById('scanMobile').value.trim(),
+        tel: document.getElementById('scanTel').value.trim(),
+        email: document.getElementById('scanEmail').value.trim(),
+        address: document.getElementById('scanAddress').value.trim(),
+        website: document.getElementById('scanWebsite').value.trim(),
+        memo: document.getElementById('scanMemo').value.trim()
+      };
+    }
+
+    // 1. 상대방 연락처를 내 폰 주소록에 바로 저장
+    function saveScannedCardToPhone() {
+      const data = getFormData();
+      if (!data.name && !data.mobile) {
+        showToast('성명 또는 전화번호를 입력해주세요.');
+        return;
+      }
+
+      const vcard = generateVCardString(data);
+      const filename = `${data.name || '명함'}_연락처.vcf`;
+      triggerVCardDownload(vcard, filename);
+      showToast('📲 내 폰 연락처 앱이 열립니다. [저장]을 누르세요!');
+
+      // 백그라운드로 시트 저장도 함께 트리거
+      data.isSaved = true;
+      google.script.run.saveScannedCard(data);
+    }
+
+    // 3. 내 명함 보내기 (안드로이드 공유창: GIF + 연락처(.vcf) + 문구)
+    const CARD_PAGE_URL = 'https://jinhyun-ai.github.io/-business_card/card/';
+    const HOMEPAGE_URL = 'https://jinhyun.ai.kr';
+    const MY_PHONE = '010-4790-1011';
+    let myCardGifFile = null;
+    let myCardGifLoading = false;
+
+    function prefetchMyCardGif() {
+      if (myCardGifFile || myCardGifLoading) return;
+      myCardGifLoading = true;
+      fetch('card.gif')
+        .then((r) => { if (!r.ok) throw new Error('GIF ' + r.status); return r.blob(); })
+        .then((blob) => { myCardGifFile = new File([blob], '전자명함_장진현.gif', { type: 'image/gif' }); })
+        .catch((e) => console.warn(e))
+        .finally(() => { myCardGifLoading = false; });
+    }
+
+    function buildMyVcardFile() {
+      const p = myProfile || {};
+      const vcard = generateVCardString({
+        name: p.name || '장진현',
+        organization: p.organization || '등대의집',
+        department: '',
+        title: p.title || '사무국장',
+        mobile: p.mobile || MY_PHONE,
+        tel: p.tel || '041-582-4495',
+        email: p.email || '2016235@light4u.kr',
+        address: p.address || '충청남도 천안시 서북구 직산읍 성진로410-11',
+        website: p.website || HOMEPAGE_URL,
+        memo: ''
+      });
+      return new File([vcard], '장진현_연락처.vcf', { type: 'text/vcard' });
+    }
+
+    async function sendMyCard() {
+      const d = getFormData();
+      const phone = (myProfile && myProfile.mobile) || MY_PHONE;
+      const text = '안녕하세요' + (d.name ? ' ' + d.name + '님' : '') + ', 장진현입니다.\n제 전자명함입니다.\n\n장진현 ' + phone + '\n\n홈페이지: ' + HOMEPAGE_URL + '\n연락처 저장: ' + CARD_PAGE_URL;
+
+      if (!myCardGifFile) {
+        prefetchMyCardGif();
+        showToast('명함 파일을 준비 중입니다. 잠시 후 다시 눌러주세요.');
+        return;
+      }
+      const candidates = [[myCardGifFile, buildMyVcardFile()], [myCardGifFile]];
+      for (const files of candidates) {
+        try {
+          if (navigator.canShare && navigator.canShare({ files })) {
+            await navigator.share({ files, text });
+            recordShare();
+            return;
+          }
+        } catch (e) {
+          if (e && e.name === 'AbortError') return;
+        }
+      }
+      // 파일 공유가 안 되는 환경: 문자앱에 문구만 채워 열기
+      const num = (d.mobile || '').replace(/[^0-9+]/g, '');
+      window.location.href = 'sms:' + num + '?body=' + encodeURIComponent(text);
+      recordShare();
+    }
+
+    function recordShare() {
+      google.script.run.recordVisit('SEND_MY_CARD', navigator.userAgent, true);
+    }
+
+    // 2. 구글 시트 인맥 DB에 등록
+    function saveScannedCardToSheet() {
+      const data = getFormData();
+      if (!data.name && !data.mobile) {
+        showToast('성명 또는 전화번호를 입력해주세요.');
+        return;
+      }
+
+      const btn = document.getElementById('btnSaveSheet');
+      btn.disabled = true;
+      btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> 저장 중...';
+
+      google.script.run
+        .withSuccessHandler((res) => {
+          btn.disabled = false;
+          btn.innerHTML = '<i class="fa-solid fa-table"></i> 2. 구글 시트 인맥 DB에 등록';
+          if (res && res.success) {
+            showToast('✅ 구글 시트 [수취명함목록]에 저장 완료!');
+          } else {
+            showToast('❌ 시트 저장 실패: ' + (res.error || '알 수 없는 오류'));
+          }
+        })
+        .withFailureHandler((err) => {
+          btn.disabled = false;
+          btn.innerHTML = '<i class="fa-solid fa-table"></i> 2. 구글 시트 인맥 DB에 등록';
+          showToast('❌ 오류: ' + err.message);
+        })
+        .saveScannedCard(data);
+    }
+
+    // ========================================================
+    // 토스트 알림
+    // ========================================================
+    function showToast(msg) {
+      const toast = document.getElementById('toast');
+      toast.innerText = msg;
+      toast.classList.add('show');
+      setTimeout(() => {
+        toast.classList.remove('show');
+      }, 3000);
+    }
+  </script>
+</body>
+</html>
