@@ -254,6 +254,10 @@ a { color: inherit; text-decoration: none; }
 .role { gap: 6px; }
 .role .fit { display: inline-block; white-space: nowrap; font-size: 13px; line-height: 1.25; }
 
+/* 프로필 영상: 사진 위에서 부드럽게 겹쳐 재생 */
+.photo video { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; object-position: top center; opacity: 0; transition: opacity .6s ease; background: var(--bg-2); }
+.photo video.on { opacity: 1; }
+
   </style>
 </head>
 <body>
@@ -754,7 +758,7 @@ a { color: inherit; text-decoration: none; }
     }
 
     // 3. 내 명함 보내기 (안드로이드 공유창: GIF + 연락처(.vcf) + 문구)
-    const CARD_PAGE_URL = 'https://card.jinhyun.ai.kr/s';
+    const CARD_PAGE_URL = 'card.jinhyun.ai.kr/s'; // 문자에서 바로 주소로 보이도록 https:// 생략
     const HOMEPAGE_URL = 'https://jinhyun.ai.kr';
     const MY_PHONE = '010-4790-1011';
     let myCardGifFile = null;
@@ -789,9 +793,8 @@ a { color: inherit; text-decoration: none; }
 
     async function sendMyCard() {
       const d = getFormData();
-      const phone = (myProfile && myProfile.mobile) || MY_PHONE;
       const callName = d.name ? d.name + (d.title ? ' ' + d.title : '') + '님' : '';
-      const text = '안녕하세요? ' + callName + (callName ? ', ' : '') + '장진현입니다.\n제 전자명함입니다.\n\n장진현 ' + phone + '\n\n▶ 아래 링크를 누르면 제 연락처가 바로 저장됩니다.\n' + CARD_PAGE_URL;
+      const text = '안녕하세요? ' + callName + (callName ? ', ' : '') + '장진현입니다.\n제 전자명함입니다.\n\n▶ 아래 링크를 누르면 제 연락처가 바로 저장됩니다.\n' + CARD_PAGE_URL;
 
       if (!myCardGifFile) {
         prefetchMyCardGif();
