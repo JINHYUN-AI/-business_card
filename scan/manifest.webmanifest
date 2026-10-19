@@ -1,0 +1,18 @@
+{
+  "id": "/scan/",
+  "name": "명함 스캐너 | JINHYUN//AI",
+  "short_name": "명함스캐너",
+  "description": "명함을 찍으면 AI가 읽어 연락처로 저장하고 내 전자명함을 보내는 앱",
+  "lang": "ko",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#111318",
+  "theme_color": "#111318",
+  "icons": [
+    { "src": "../icons/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "../icons/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "../icons/icon-512-maskable.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ]
+}

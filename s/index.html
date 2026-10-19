@@ -276,6 +276,11 @@ a { color: inherit; text-decoration: none; }
 .photo video { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; object-position: top center; opacity: 0; transition: opacity .6s ease; background: var(--bg-2); }
 .photo video.on { opacity: 1; }
 
+/* 앱 설치 버튼(설치 가능할 때만 보임) */
+.install { margin-right: 6px; padding: 8px 10px; border: 1px solid var(--lime); color: var(--lime); font: 800 10.5px/1 var(--f-mono); letter-spacing: .1em; border-radius: 2px; }
+.install:active { background: var(--lime); color: #111; }
+.install[hidden] { display: none; }
+
   </style>
 </head>
 <body>
