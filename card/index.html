@@ -910,7 +910,7 @@
       google.script.run.recordVisit('WEB_LOAD', navigator.userAgent, false);
 
       // 문자/카톡 링크(?save=1)로 들어오면 곧바로 연락처 저장 화면을 시도
-      if (new URLSearchParams(location.search).get('save') === '1') {
+      if ((new URLSearchParams(location.search).get('save') === '1' || window.FORCE_SAVE === true)) {
         downloadMyVCard(true);
         showToast('📲 연락처 파일을 받는 중입니다. 완료되면 [가져오기]를 눌러주세요. 안 되면 아래 저장 버튼을 누르세요.');
       }
