@@ -237,6 +237,34 @@ a { color: inherit; text-decoration: none; }
 /* 한 줄 제목 */
 .h2.one { font-size: clamp(21px, 6.4vw, 30px); white-space: nowrap; letter-spacing: -.05em; }
 
+/* ---------- 이력(20번 홈페이지와 동일 구조) ---------- */
+.stats.k4 { grid-template-columns: repeat(4, 1fr); }
+.stats.k4 .stat { padding: 16px 0 14px 10px; }
+.stats.k4 .stat b { font-size: clamp(24px, 7.4vw, 36px); }
+.stats.k4 .stat > span { font-size: 10.5px; margin-top: 6px; }
+#pfTabs { display: grid; grid-template-columns: repeat(var(--n, 5), 1fr); gap: 4px; margin: 14px 0 12px; }
+#pfTabs .chip { padding: 11px 2px; font-size: 10.5px; letter-spacing: 0; white-space: nowrap; text-align: center; cursor: pointer; }
+.pf-r { border: 1px solid var(--line); background: linear-gradient(160deg, rgba(244,244,240,.06), rgba(244,244,240,.015)); border-radius: 2px; overflow: hidden; }
+.mchart { display: flex; align-items: flex-end; gap: 3px; height: 92px; padding: 24px 14px 0; border-bottom: 1px solid var(--line); position: relative; }
+.mchart[hidden] { display: none; }
+.mchart i { flex: 1; min-width: 2px; background: var(--line-2); height: calc(var(--h) * 1%); transform: scaleY(0); transform-origin: bottom; }
+.mchart i.on { background: var(--lime); }
+.mchart.go i { animation: barUp .85s cubic-bezier(.16,1,.3,1) both; animation-delay: calc(var(--k) * 32ms + .1s); }
+@keyframes barUp { 0% { transform: scaleY(0); opacity: .2; } 60% { opacity: 1; } 100% { transform: scaleY(1); opacity: 1; } }
+.mchart .cap { position: absolute; left: 14px; top: 8px; font: 700 9.5px/1 var(--f-mono); letter-spacing: .08em; color: var(--fg-40); }
+.pf-list { max-height: 360px; overflow-y: auto; scrollbar-width: thin; scrollbar-color: var(--line-2) transparent; -webkit-overflow-scrolling: touch; }
+.pf-item { display: grid; grid-template-columns: 82px 1fr; gap: 4px 12px; padding: 13px 14px; border-bottom: 1px solid var(--line); align-items: baseline; }
+.pf-item .pp { grid-row: 1 / span 2; font: 700 11px/1.35 var(--f-mono); letter-spacing: .03em; color: var(--fg-40); }
+.pf-item.new .pp { color: var(--lime); }
+.pf-item .tt { font: 700 14px/1.4 var(--f-body); letter-spacing: -.02em; word-break: keep-all; }
+.pf-item .oo { font-size: 12px; color: var(--fg-60); word-break: keep-all; }
+.cr-grid { display: grid; grid-template-columns: 1fr; gap: 10px; padding: 12px; }
+.cr-card { border: 1px solid var(--line-2); padding: 14px; display: flex; flex-direction: column; gap: 7px; }
+.cr-card .id { font: 700 11px/1 var(--f-mono); letter-spacing: .08em; color: var(--lime); }
+.cr-card .nm { font: 900 14px/1.35 var(--f-body); letter-spacing: -.03em; word-break: keep-all; }
+.cr-card .rl { font-size: 12px; color: var(--amber); font-weight: 700; }
+.cr-card .ft { font-size: 12px; line-height: 1.5; color: var(--fg-60); word-break: keep-all; }
+
   </style>
 </head>
 <body>
@@ -276,11 +304,8 @@ a { color: inherit; text-decoration: none; }
         <button class="btn lime block" type="button" onclick="downloadMyVCard()">연락처 저장하기 →</button>
       </div>
 
-      <div class="stats rise" style="--i:6">
-        <div class="stat"><b><span data-count="25">0</span><i>년</i></b><span>사회복지 현장 경력</span></div>
-        <div class="stat"><b><span data-count="37">0</span><i>개</i></b><span>AI 분석 지표</span></div>
-        <div class="stat"><b><span data-count="6">0</span><i>종</i></b><span>AI 에이전트</span></div>
-      </div>
+      <!-- 숫자 4개: 구글 시트 '이력사항'과 연결 (20번 홈페이지와 동일 집계) -->
+      <div class="stats k4 rise" id="kStats" style="--i:6; display:none"></div>
     </section>
 
     <!-- 소개 -->
@@ -291,6 +316,10 @@ a { color: inherit; text-decoration: none; }
     <!-- 이력 / 시스템: 한 줄 -->
     <div class="chapter"><span class="ch-name">PROFILE</span><span class="ch-pos">02</span></div>
     <h2 class="h2 one rise">25년 현장, 검증된 이력<span class="lime">.</span></h2>
+    <div id="pfWrap" style="display:none">
+      <div id="pfTabs"></div>
+      <div class="pf-r"><div class="mchart" id="mchart" hidden></div><div class="pf-list" id="pfList"></div></div>
+    </div>
 
     <div class="chapter"><span class="ch-name">SYSTEMS</span><span class="ch-pos">03</span></div>
     <h2 class="h2 one rise">직접 개발한 AI 에이전트<span class="lime">.</span></h2>
@@ -537,10 +566,106 @@ a { color: inherit; text-decoration: none; }
       });
     }
 
+    // ---------- 이력(20번 홈페이지와 동일 구조): 구글 시트 '이력사항' 탭, Show 체크 해제 행은 서버에서 제외 ----------
+    const PTABS = ['활동·자문', '연구·발표', '개발', '출강', '학력·경력', '저작권'];
+    const PCATS = [['Activity'], ['Research'], ['Development'], ['Lecture'], ['Education', 'Experience'], null];
+    let history = { items: [], copyright: [] };
+    let pfSel = 0;
+
+    const esc = (t) => String(t == null ? '' : t).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+    const pkey = (p) => { const m = /(\d{4})\.(\d{2})/.exec(p || ''); return m ? (+m[1]) * 100 + (+m[2]) : 0; };
+    const histCat = (cats) => history.items.filter((r) => cats.indexOf(r.c) >= 0);
+
+    function renderHistory(data) {
+      history = { items: (data && data.items) || [], copyright: (data && data.copyright) || [] };
+      if (!history.items.length && !history.copyright.length) return;
+
+      // 숫자 4개 (시트와 연결)
+      const dev = histCat(['Development']), act = histCat(['Activity']), res = histCat(['Research']);
+      const K = [
+        [dev.length, '건', '개발한 플랫폼'],
+        [history.copyright.length, '종', 'AI 소프트웨어 저작권 등록'],
+        [act.length, '건', '위원·자문 등 외부 활동'],
+        [res.length, '편', '연구·학술 발표·기고']
+      ];
+      const stats = $('#kStats');
+      stats.innerHTML = K.map((k) => '<div class="stat"><b><span data-count="' + k[0] + '">' + k[0] + '</span><i>' + k[1] + '</i></b><span>' + esc(k[2]) + '</span></div>').join('');
+      stats.style.display = '';
+      stats.querySelectorAll('[data-count]').forEach(countUp);
+
+      // 탭 (데이터가 있는 탭만)
+      const avail = PCATS.map((c) => (c ? histCat(c).length > 0 : history.copyright.length > 0));
+      if (!avail[pfSel]) pfSel = Math.max(0, avail.indexOf(true));
+      const tabs = $('#pfTabs');
+      tabs.innerHTML = '';
+      let n = 0;
+      PTABS.forEach((t, i) => {
+        if (!avail[i]) return;
+        n++;
+        const b = document.createElement('button');
+        b.type = 'button';
+        b.className = 'chip' + (i === pfSel ? ' on' : '');
+        b.dataset.k = i;
+        b.textContent = t;
+        b.onclick = () => pfRender(i);
+        tabs.appendChild(b);
+      });
+      tabs.style.setProperty('--n', n || 1);
+      $('#pfWrap').style.display = n ? '' : 'none';
+      pfRender(pfSel);
+    }
+
+    function pfRender(k) {
+      pfSel = k;
+      document.querySelectorAll('#pfTabs .chip').forEach((b) => b.classList.toggle('on', +b.dataset.k === k));
+      const list = $('#pfList'), mch = $('#mchart');
+      const cats = PCATS[k];
+      list.scrollTop = 0;
+      if (!cats) {
+        mch.hidden = true;
+        list.innerHTML = '<div class="cr-grid">' + history.copyright.map((c) => '<div class="cr-card"><span class="id">' + esc(c.id) + '</span><span class="nm">' + esc(c.n) + '</span><span class="rl">' + esc(c.r) + '</span><span class="ft">' + esc(c.f) + '</span></div>').join('') + '</div>';
+        return;
+      }
+      const rows = histCat(cats).sort((a, b) => pkey(b.p) - pkey(a.p));
+      const cy = new Date().getFullYear() * 100 + 1;
+      if (cats[0] === 'Development' && rows.length) {
+        // 월별 신규 개발 막대 그래프
+        const ks = rows.map((r) => pkey(r.p)).filter(Boolean);
+        const minK = Math.min.apply(null, ks), maxK = Math.max.apply(null, ks);
+        const cnt = {}, keys = [];
+        for (let y = Math.floor(minK / 100), m = minK % 100; y * 100 + m <= maxK;) { const kk = y * 100 + m; cnt[kk] = 0; keys.push(kk); m++; if (m > 12) { m = 1; y++; } }
+        rows.forEach((r) => { const kk = pkey(r.p); if (cnt[kk] !== undefined) cnt[kk]++; });
+        const mx = Math.max.apply(null, keys.map((q) => cnt[q])) || 1;
+        mch.innerHTML = '<span class="cap">월별 신규 개발 · ' + rows.length + '건 / ' + keys.length + '개월</span>' +
+          keys.map((q, i) => '<i class="' + (q >= cy ? 'on' : '') + '" style="--h:' + Math.max(cnt[q] ? 18 : 4, cnt[q] / mx * 100) + ';--k:' + i + '" title="' + Math.floor(q / 100) + '.' + String(q % 100).padStart(2, '0') + ' · ' + cnt[q] + '"></i>').join('');
+        mch.hidden = false;
+        mch.classList.remove('go'); void mch.offsetWidth; mch.classList.add('go');
+      } else {
+        mch.hidden = true;
+      }
+      list.innerHTML = rows.map((r) => '<div class="pf-item' + (pkey(r.p) >= cy || /현재|present|ongoing/i.test(r.p) ? ' new' : '') + '"><span class="pp">' + esc(r.p).replace('~', '~<br>') + '</span><span class="tt">' + esc(r.t) + '</span><span class="oo">' + esc(r.o) + '</span></div>').join('');
+    }
+
+    function loadHistory() {
+      let cached = null;
+      try { cached = JSON.parse(localStorage.getItem('bizcard_history') || 'null'); } catch (e) { cached = null; }
+      if (cached) renderHistory(cached);
+      google.script.run
+        .withSuccessHandler((res) => {
+          if (!res) return;
+          const same = cached && JSON.stringify(cached) === JSON.stringify(res);
+          try { localStorage.setItem('bizcard_history', JSON.stringify(res)); } catch (e) { /* 저장 불가 */ }
+          if (!same) renderHistory(res);
+        })
+        .withFailureHandler((err) => console.error(err))
+        .getHistoryData();
+    }
+
     // ---------- 시작 ----------
     window.addEventListener('DOMContentLoaded', () => {
       startLoader();
       loadProfile();
+      loadHistory();
       startNetwork();
       setTimeout(completeLoader, 500); // 기본값을 이미 그렸으므로 서버 응답을 기다리지 않는다
       // 문자/카톡 링크(/s 또는 ?save=1)로 들어오면 연락처 파일을 곧바로 내려받음

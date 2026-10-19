@@ -222,6 +222,34 @@ a { color: inherit; text-decoration: none; }
 /* 한 줄 제목 */
 .h2.one { font-size: clamp(21px, 6.4vw, 30px); white-space: nowrap; letter-spacing: -.05em; }
 
+/* ---------- 이력(20번 홈페이지와 동일 구조) ---------- */
+.stats.k4 { grid-template-columns: repeat(4, 1fr); }
+.stats.k4 .stat { padding: 16px 0 14px 10px; }
+.stats.k4 .stat b { font-size: clamp(24px, 7.4vw, 36px); }
+.stats.k4 .stat > span { font-size: 10.5px; margin-top: 6px; }
+#pfTabs { display: grid; grid-template-columns: repeat(var(--n, 5), 1fr); gap: 4px; margin: 14px 0 12px; }
+#pfTabs .chip { padding: 11px 2px; font-size: 10.5px; letter-spacing: 0; white-space: nowrap; text-align: center; cursor: pointer; }
+.pf-r { border: 1px solid var(--line); background: linear-gradient(160deg, rgba(244,244,240,.06), rgba(244,244,240,.015)); border-radius: 2px; overflow: hidden; }
+.mchart { display: flex; align-items: flex-end; gap: 3px; height: 92px; padding: 24px 14px 0; border-bottom: 1px solid var(--line); position: relative; }
+.mchart[hidden] { display: none; }
+.mchart i { flex: 1; min-width: 2px; background: var(--line-2); height: calc(var(--h) * 1%); transform: scaleY(0); transform-origin: bottom; }
+.mchart i.on { background: var(--lime); }
+.mchart.go i { animation: barUp .85s cubic-bezier(.16,1,.3,1) both; animation-delay: calc(var(--k) * 32ms + .1s); }
+@keyframes barUp { 0% { transform: scaleY(0); opacity: .2; } 60% { opacity: 1; } 100% { transform: scaleY(1); opacity: 1; } }
+.mchart .cap { position: absolute; left: 14px; top: 8px; font: 700 9.5px/1 var(--f-mono); letter-spacing: .08em; color: var(--fg-40); }
+.pf-list { max-height: 360px; overflow-y: auto; scrollbar-width: thin; scrollbar-color: var(--line-2) transparent; -webkit-overflow-scrolling: touch; }
+.pf-item { display: grid; grid-template-columns: 82px 1fr; gap: 4px 12px; padding: 13px 14px; border-bottom: 1px solid var(--line); align-items: baseline; }
+.pf-item .pp { grid-row: 1 / span 2; font: 700 11px/1.35 var(--f-mono); letter-spacing: .03em; color: var(--fg-40); }
+.pf-item.new .pp { color: var(--lime); }
+.pf-item .tt { font: 700 14px/1.4 var(--f-body); letter-spacing: -.02em; word-break: keep-all; }
+.pf-item .oo { font-size: 12px; color: var(--fg-60); word-break: keep-all; }
+.cr-grid { display: grid; grid-template-columns: 1fr; gap: 10px; padding: 12px; }
+.cr-card { border: 1px solid var(--line-2); padding: 14px; display: flex; flex-direction: column; gap: 7px; }
+.cr-card .id { font: 700 11px/1 var(--f-mono); letter-spacing: .08em; color: var(--lime); }
+.cr-card .nm { font: 900 14px/1.35 var(--f-body); letter-spacing: -.03em; word-break: keep-all; }
+.cr-card .rl { font-size: 12px; color: var(--amber); font-weight: 700; }
+.cr-card .ft { font-size: 12px; line-height: 1.5; color: var(--fg-60); word-break: keep-all; }
+
   </style>
 </head>
 <body>
