@@ -974,9 +974,36 @@
       setTimeout(() => URL.revokeObjectURL(url), 1000);
     }
 
+    // 안드로이드: 연락처 '새로 만들기' 화면을 값이 채워진 채로 직접 열기 (파일 형식 문제 없음)
+    // 그 외(아이폰/PC 등)나 열리지 않는 환경: vCard(.vcf) 파일 내려받기
+    function saveContact(data, vcard, filename) {
+      if (/Android/i.test(navigator.userAgent)) {
+        const parts = [
+          'S.name=' + encodeURIComponent(data.name || ''),
+          'S.phone=' + encodeURIComponent(data.mobile || ''),
+          'S.secondary_phone=' + encodeURIComponent(data.tel || ''),
+          'S.email=' + encodeURIComponent(data.email || ''),
+          'S.company=' + encodeURIComponent(data.organization || ''),
+          'S.job_title=' + encodeURIComponent(data.title || ''),
+          'S.postal=' + encodeURIComponent(data.address || ''),
+          'S.notes=' + encodeURIComponent([data.department, data.website, data.memo].filter(Boolean).join(' / '))
+        ];
+        let left = false;
+        const onHide = () => { if (document.hidden) left = true; };
+        document.addEventListener('visibilitychange', onHide);
+        window.location.href = 'intent:#Intent;action=android.intent.action.INSERT;type=vnd.android.cursor.dir/contact;' + parts.join(';') + ';end';
+        setTimeout(() => {
+          document.removeEventListener('visibilitychange', onHide);
+          if (!left) triggerVCardDownload(vcard, filename); // 연락처 앱이 안 열렸으면 파일로 대체
+        }, 1500);
+        return;
+      }
+      triggerVCardDownload(vcard, filename);
+    }
+
     // 내 연락처 다운로드
     function downloadMyVCard() {
-      const vcard = generateVCardString({
+      const myData = {
         name: myProfile.name || '장진현',
         organization: myProfile.organization || '등대의집',
         department: '',
@@ -987,9 +1014,10 @@
         address: myProfile.address || '충청남도 천안시 서북구 직산읍 성진로410-11',
         website: myProfile.website || 'https://jinhyun.ai.kr',
         memo: myProfile.intro || '코딩하는 사무국장 장진현입니다.'
-      });
+      };
+      const vcard = generateVCardString(myData);
 
-      triggerVCardDownload(vcard, `${myProfile.name || '장진현'}_국장_연락처.vcf`);
+      saveContact(myData, vcard, `${myProfile.name || '장진현'}_국장_연락처.vcf`);
       showToast('📲 연락처 파일이 열립니다. [저장]을 눌러주세요!');
       google.script.run.recordVisit('SAVE_MY_CONTACT', navigator.userAgent, true);
     }

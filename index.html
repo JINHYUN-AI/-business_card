@@ -939,6 +939,33 @@
       setTimeout(() => URL.revokeObjectURL(url), 1000);
     }
 
+    // 안드로이드: 연락처 '새로 만들기' 화면을 값이 채워진 채로 직접 열기 (파일 형식 문제 없음)
+    // 그 외(아이폰/PC 등)나 열리지 않는 환경: vCard(.vcf) 파일 내려받기
+    function saveContact(data, vcard, filename) {
+      if (/Android/i.test(navigator.userAgent)) {
+        const parts = [
+          'S.name=' + encodeURIComponent(data.name || ''),
+          'S.phone=' + encodeURIComponent(data.mobile || ''),
+          'S.secondary_phone=' + encodeURIComponent(data.tel || ''),
+          'S.email=' + encodeURIComponent(data.email || ''),
+          'S.company=' + encodeURIComponent(data.organization || ''),
+          'S.job_title=' + encodeURIComponent(data.title || ''),
+          'S.postal=' + encodeURIComponent(data.address || ''),
+          'S.notes=' + encodeURIComponent([data.department, data.website, data.memo].filter(Boolean).join(' / '))
+        ];
+        let left = false;
+        const onHide = () => { if (document.hidden) left = true; };
+        document.addEventListener('visibilitychange', onHide);
+        window.location.href = 'intent:#Intent;action=android.intent.action.INSERT;type=vnd.android.cursor.dir/contact;' + parts.join(';') + ';end';
+        setTimeout(() => {
+          document.removeEventListener('visibilitychange', onHide);
+          if (!left) triggerVCardDownload(vcard, filename); // 연락처 앱이 안 열렸으면 파일로 대체
+        }, 1500);
+        return;
+      }
+      triggerVCardDownload(vcard, filename);
+    }
+
     // ========================================================
     // 카메라 촬영 및 Gemini AI OCR 스캔
     // ========================================================
@@ -1032,7 +1059,7 @@
 
       const vcard = generateVCardString(data);
       const filename = `${data.name || '명함'}_연락처.vcf`;
-      triggerVCardDownload(vcard, filename);
+      saveContact(data, vcard, filename);
       showToast('📲 내 폰 연락처 앱이 열립니다. [저장]을 누르세요!');
 
       // 백그라운드로 시트 저장도 함께 트리거
