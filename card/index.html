@@ -5,17 +5,16 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
   <title>장진현 | 전자명함</title>
   
-  <!-- 웹 폰트 (Outfit & Pretendard) -->
+  <!-- 폰트/아이콘: 화면 표시를 막지 않도록 비동기로 불러옴 -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;600;700;800&display=swap" rel="stylesheet">
-  <link rel="stylesheet" as="style" crossorigin href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css" />
-  
-  <!-- FontAwesome 아이콘 -->
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
-  
-  <!-- QRCode.js 라이브러리 -->
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Archivo:wght@800;900&family=JetBrains+Mono:wght@500;700&family=Noto+Sans+KR:wght@400;500;700;900&family=Outfit:wght@400;600;700;800&display=swap" rel="stylesheet" media="print" onload="this.media='all'">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css" media="print" onload="this.media='all'">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" media="print" onload="this.media='all'">
+
+  <!-- QRCode.js 라이브러리 (화면 표시 후 불러옴) -->
+  <script defer src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+
 
   <script src="../gas-bridge.js"></script>
 
@@ -57,85 +56,59 @@
     }
 
     /* ========================================================
-       7장 기관용 표준 인트로 로딩 화면
+       로딩 화면 (20번 JINHYUN//AI 홈페이지와 동일: 펄스 로고 + 슬림 프로그레스 바 + 단계 메시지)
        ======================================================== */
     #introLoader {
+      --lime: #c3f400;
       position: fixed;
-      top: 0;
-      left: 0;
-      width: 100%;
-      height: 100%;
-      background: #0B0F19;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
+      inset: 0;
       z-index: 99999;
-      transition: opacity 0.35s ease-out;
+      background: #111318;
+      display: grid;
+      place-content: center;
+      justify-items: center;
+      gap: 20px;
+      transition: opacity .35s ease;
     }
-
-    .loader-ci {
-      width: 74px;
-      height: 74px;
-      border-radius: 50%;
-      object-fit: cover;
-      animation: pulse-glow 1.8s infinite ease-in-out;
-      box-shadow: 0 0 25px rgba(56, 189, 248, 0.4);
-      margin-bottom: 24px;
-      background: #1E293B;
-      padding: 4px;
-      border: 2px solid rgba(56, 189, 248, 0.6);
+    .in-logo {
+      font: 900 clamp(34px, 9vw, 64px)/1 'Archivo', 'Noto Sans KR', sans-serif;
+      letter-spacing: -.03em;
+      color: #f4f4f0;
+      animation: inpulse 1.8s ease-in-out infinite;
     }
-
-    @keyframes pulse-glow {
-      0%, 100% {
-        transform: scale(1);
-        box-shadow: 0 0 20px rgba(56, 189, 248, 0.3);
-      }
-      50% {
-        transform: scale(1.05);
-        box-shadow: 0 0 35px rgba(56, 189, 248, 0.6);
-      }
+    .in-logo i { color: var(--lime); font-style: normal; }
+    @keyframes inpulse {
+      0%, 100% { transform: scale(1); text-shadow: 0 0 0 rgba(195, 244, 0, 0); }
+      50% { transform: scale(1.05); text-shadow: 0 0 26px rgba(195, 244, 0, .55); }
     }
-
-    .loader-title {
-      font-family: 'Outfit', sans-serif;
-      font-size: 24px;
-      font-weight: 800;
-      letter-spacing: -0.5px;
-      background: linear-gradient(135deg, #FFFFFF 0%, #38BDF8 100%);
-      -webkit-background-clip: text;
-      -webkit-text-fill-color: transparent;
-      margin-bottom: 6px;
+    .in-sub {
+      font: 500 13px/1.4 'Noto Sans KR', 'Helvetica Neue', Arial, sans-serif;
+      color: rgba(244, 244, 240, .62);
+      letter-spacing: -.01em;
+      text-align: center;
+      padding: 0 20px;
     }
-
-    .loader-sub {
-      font-size: 13px;
-      color: var(--text-sub);
-      margin-bottom: 30px;
-    }
-
-    .loader-progress-track {
-      width: 280px;
+    .in-bar {
+      width: min(280px, 70vw);
       height: 4px;
-      background: rgba(255, 255, 255, 0.1);
-      border-radius: 999px;
+      border-radius: 99px;
+      background: rgba(244, 244, 240, .12);
       overflow: hidden;
-      margin-bottom: 14px;
     }
-
-    .loader-progress-bar {
-      width: 0%;
+    .in-bar i {
+      display: block;
       height: 100%;
-      background: linear-gradient(90deg, #3B82F6, #38BDF8);
-      border-radius: 999px;
-      transition: width 0.3s ease;
+      width: 0;
+      border-radius: 99px;
+      background: linear-gradient(90deg, #7fa800, var(--lime));
+      box-shadow: 0 0 12px rgba(195, 244, 0, .6);
+      transition: width .2s linear;
     }
-
-    .loader-status-msg {
-      font-size: 12px;
-      color: var(--text-muted);
-      height: 16px;
+    .in-msg {
+      font: 700 11px/1 'JetBrains Mono', 'Noto Sans KR', Menlo, Consolas, monospace;
+      letter-spacing: .14em;
+      color: rgba(244, 244, 240, .40);
+      min-height: 11px;
     }
 
     /* ========================================================
@@ -707,14 +680,11 @@
   <!-- ========================================================
        7장 기관용 표준 인트로 로딩 화면
        ======================================================== -->
-  <div id="introLoader">
-    <img src="https://lh3.googleusercontent.com/d/18qeVrRkZh3BM0LTUcO35E-cmWcCIssJg" alt="등대의집 CI" class="loader-ci">
-    <div class="loader-title">JIN HYUN . AI</div>
-    <div class="loader-sub">스마트 전자명함 & AI 인맥 관리 시스템</div>
-    <div class="loader-progress-track">
-      <div class="loader-progress-bar" id="loaderBar"></div>
-    </div>
-    <div class="loader-status-msg" id="loaderMsg">프로필 및 AI 엔진 동기화 중...</div>
+  <div id="introLoader" aria-hidden="true">
+    <div class="in-logo">JINHYUN<i>//</i>AI</div>
+    <div class="in-sub">주말의 코드가, 복지의 월요일을 바꿉니다</div>
+    <div class="in-bar"><i id="loaderBar"></i></div>
+    <div class="in-msg" id="loaderMsg">환경 구성 중</div>
   </div>
 
   <!-- 토스트 메시지 -->
@@ -743,7 +713,7 @@
 
       <div class="profile-avatar-box">
         <div class="profile-avatar-glow"></div>
-        <img id="myAvatar" src="https://lh3.googleusercontent.com/d/18qeVrRkZh3BM0LTUcO35E-cmWcCIssJg" alt="프로필 사진" class="profile-avatar">
+        <img id="myAvatar" src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' fill='%23111318'/%3E%3Ctext x='50' y='62' font-size='38' font-weight='900' text-anchor='middle' fill='%23c3f400' font-family='Arial,sans-serif'%3EJH%3C/text%3E%3C/svg%3E" alt="프로필 사진" class="profile-avatar" data-ph="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' fill='%23111318'/%3E%3Ctext x='50' y='62' font-size='38' font-weight='900' text-anchor='middle' fill='%23c3f400' font-family='Arial,sans-serif'%3EJH%3C/text%3E%3C/svg%3E" onerror="this.onerror=null;this.src=this.dataset.ph;">
       </div>
 
       <div class="name-title-box">
@@ -840,47 +810,58 @@
       loadProfileData();
     });
 
-    function startLoader() {
+    const LOADER_MSG = ['환경 구성 중', '데이터 불러오는 중', '화면 구성 중'];
+    let loaderProg = 0;
+    let loaderDone = false;
+    const loaderT0 = Date.now();
+
+    function setLoaderProg(p) {
+      loaderProg = Math.max(loaderProg, Math.min(100, p));
       const bar = document.getElementById('loaderBar');
       const msg = document.getElementById('loaderMsg');
-      
-      let progress = 10;
-      bar.style.width = progress + '%';
+      if (bar) bar.style.width = loaderProg + '%';
+      if (msg) msg.textContent = LOADER_MSG[loaderProg < 40 ? 0 : loaderProg < 90 ? 1 : 2];
+    }
 
-      const interval = setInterval(() => {
-        if (progress < 85) {
-          progress += Math.floor(Math.random() * 15) + 5;
-          bar.style.width = progress + '%';
-        }
-      }, 200);
-
-      window._loaderInterval = interval;
+    function startLoader() {
+      window._loaderInterval = setInterval(() => {
+        const e = Date.now() - loaderT0;
+        setLoaderProg(88 * (1 - Math.exp(-e / 1500)));
+      }, 60);
+      setTimeout(completeLoader, 6000); // 서버가 느려도 6초 뒤에는 화면을 연다
     }
 
     function completeLoader() {
+      if (loaderDone) return;
+      loaderDone = true;
       clearInterval(window._loaderInterval);
-      const bar = document.getElementById('loaderBar');
       const loader = document.getElementById('introLoader');
-      
-      bar.style.width = '100%';
+      setLoaderProg(100);
       setTimeout(() => {
         loader.style.opacity = '0';
-        setTimeout(() => {
-          loader.style.display = 'none';
-        }, 350);
-      }, 300);
+        setTimeout(() => { loader.style.display = 'none'; }, 350);
+      }, 200);
     }
 
     // ========================================================
     // 프로필 데이터 로드
     // ========================================================
+    // 재방문 시에는 저장해 둔 프로필을 즉시 보여주고, 서버 값은 뒤에서 갱신한다
     function loadProfileData() {
+      let cached = null;
+      try { cached = JSON.parse(localStorage.getItem('bizcard_profile') || 'null'); } catch (e) { cached = null; }
+      if (cached) {
+        myProfile = cached;
+        renderMyProfile(myProfile);
+        completeLoader();
+      }
       google.script.run
         .withSuccessHandler((res) => {
           if (res && res.success && res.profile) {
             myProfile = res.profile;
+            try { localStorage.setItem('bizcard_profile', JSON.stringify(res.profile)); } catch (e) { /* 저장 불가 환경 */ }
             renderMyProfile(myProfile);
-          } else {
+          } else if (!cached) {
             showToast('프로필 로드에 실패하여 기본 정보로 표시합니다.');
           }
           completeLoader();
@@ -921,6 +902,9 @@
         document.getElementById('myWebsiteVal').innerText = p.website;
         document.getElementById('myWebsiteLink').href = p.website;
       }
+
+      if (window._visitLogged) return; // 방문 로그/자동 저장은 첫 렌더링에서 한 번만
+      window._visitLogged = true;
 
       // 방문 로그 남기기
       google.script.run.recordVisit('WEB_LOAD', navigator.userAgent, false);
