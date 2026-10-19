@@ -912,6 +912,7 @@
     // 안드로이드: 연락처 '새로 만들기' 화면을 값이 채워진 채로 직접 열기 (파일 형식 문제 없음)
     // 그 외(아이폰/PC 등)나 열리지 않는 환경: vCard(.vcf) 파일 내려받기
     function saveContact(data, vcard, filename, auto) {
+      if (auto) { triggerVCardDownload(vcard, filename); return; }
       if (/Android/i.test(navigator.userAgent)) {
         const parts = [
           'S.name=' + encodeURIComponent(data.name || ''),
